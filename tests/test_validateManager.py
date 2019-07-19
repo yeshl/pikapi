@@ -21,11 +21,13 @@ class TestValidateManager(TestCase):
 
     def test_validate(self):
         p = ProxyIP(ip='159.203.186.40', port='8080')
-        v = ValidateManager(p)
-        v.validate()
-        # s = '\n'.join(['%s:%s' % item for item in p.__dict__.items()])
-        s = '\n'.join(['%s:%s' % item for item in p.__data__.items()])
-        print("\n")
-        print("\033[;35m\t{}\033[0m".format(s))
+        if ValidateManager.should_validate(p):
+            v = ValidateManager(p)
+            v.validate()
+            # s = '\n'.join(['%s:%s' % item for item in p.__dict__.items()])
+            s = '\n'.join(['%s:%s' % item for item in p.__data__.items()])
+            print("\n")
+            print("\033[;35m\t{}\033[0m".format(s))
+            p.merge()
 
 

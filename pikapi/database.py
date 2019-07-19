@@ -70,7 +70,7 @@ class ProxyIP(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
     latency = FloatField()
-    # stability = FloatField()
+    failed_validate = IntegerField(default=0)
     http_pass_proxy_ip = CharField(null=True, max_length=16)
     https_pass_proxy_ip = CharField(null=True, max_length=16)
     http_anonymous = IntegerField(default=0)
@@ -84,24 +84,26 @@ class ProxyIP(BaseModel):
     city = CharField(null=True, max_length=32)
 
     def __str__(self):
-        return 'ProxyIP{{ip: {}, port: {}, http_pass_proxy_ip: {}, https_pass_proxy_ip: {},' \
-               ' http_anonymous: {}, https_anonymous: {}, http_weight: {}, https_weight: {}, https_weight: {}}}' \
-            .format(self.ip, self.port, self.http_pass_proxy_ip, self.https_pass_proxy_ip,
+        return 'ProxyIP{{ip: {}, port: {}, ' \
+               ' http_anonymous: {}, https_anonymous: {}, http_weight: {}, https_weight: {}, country: {}}}' \
+            .format(self.ip, self.port,
                     self.http_anonymous, self.https_anonymous, self.http_weight, self.https_weight, self.country)
 
     def __repr__(self):
         return self.__str__()
 
     def merge(self):
+        if self.http_weight+self.https_weight <= 0:
+            self.failed_validate = self.failed_validate+1
         cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
                              http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
                              http_weight=self.http_weight, https_weight=self.https_weight,
+                             failed_validate=self.failed_validate,
                              updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")) \
             .where(ProxyIP.ip == self.ip).execute()
         if 0 == cnt:
             cnt = self.save()
         return cnt
-
 
 # @pre_save(sender=ProxyIP)
 # def proxy_ip_on_pre_save_handler(model_class, instance: ProxyIP, created):

@@ -18,7 +18,6 @@ class SpysOneProvider(BaseProvider):
         ]
 
     def parse(self, html: HTML):
-        ip_list: [ProxyIP] = []
         for ip_row in html.find('table tr[onmouseover]'):
             ip_port_text_elem = ip_row.find('.spy14', first=True)
             if ip_port_text_elem:

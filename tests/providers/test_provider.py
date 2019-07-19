@@ -2,11 +2,13 @@ import unittest
 
 from pikapi.database import ProxyWebSite
 from pikapi.providers import *
+from pikapi.providers._66ip_provider import _66ipProvider
+from pikapi.providers.mrhinkydink_provider import MrhinkydinkProvider
 
 
 class TestProvider(unittest.TestCase):
     def test(self):
-        self.assert_provider(A2uProvider())
+        # self.assert_provider(A2uProvider())
         #self.assert_provider(CoolProxyProvider())
         # self.assert_provider(Data5uProvider())
         # self.assert_provider(FreeProxyListProvider())
@@ -14,7 +16,11 @@ class TestProvider(unittest.TestCase):
         # self.assert_provider(SpyMeProvider())
         # self.assert_provider(SpysOneProvider())
         # self.assert_provider(IpaddressProvider())
-        # self.assert_provider(KuaidailiProvider())
+        #self.assert_provider(KuaidailiProvider())
+        # self.assert_provider(MrhinkydinkProvider())
+        self.assert_provider(_66ipProvider())
+
+        # self.assert_provider(XiciProvider())
         # for p in all_providers:
         #     self.assert_provider(p())
 
@@ -25,6 +31,7 @@ class TestProvider(unittest.TestCase):
         proxies = []
         try:
             proxies = p.crawl()
+            proxies = set(proxies)
             pw.proxy_count = len(proxies)
         except Exception as e:
             print("{} crawl error:{}".format(p.site_name, e))

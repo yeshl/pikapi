@@ -14,8 +14,7 @@ class SpyMeProvider(BaseProvider):
             'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt'
         ]
 
-    def parse(self, html: HTML) -> [ProxyIP]:
-        ip_list: [ProxyIP] = []
+    def parse(self, html: HTML):
         text = html.raw_html
         ip_port_str_list = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{2,5}', text.decode('utf-8'))
         for ip_port in ip_port_str_list:

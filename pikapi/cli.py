@@ -26,7 +26,7 @@ def main(args) -> int:
                         help='Print the version of pikapi')
     parser.add_argument('--db-path', type=str, default='./pikapi.db',
                         help='The sqlite database file location')
-    parser.add_argument('--validation-pool', type=int, default=31,
+    parser.add_argument('--validation-pool', type=int, default=64,
                         help='The validation pool size (i.e. the limit of concurrent validation tasks for proxies)')
 
     parsed_args = parser.parse_args(args)

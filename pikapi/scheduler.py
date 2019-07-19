@@ -16,27 +16,31 @@ def crawl_ips(provider_queue: Queue, validator_queue: Queue):
     while True:
         p: BaseProvider = provider_queue.get()
         pw: ProxyWebSite = ProxyWebSite(site_name=p.site_name)
-        logger.error("{} crawling...".format(p))
+        logger.debug("{} crawling...".format(p))
         pw.stats = 'OK'
         try:
             proxies = p.crawl()
+            proxies = list(set(proxies))
             pw.proxy_count = len(proxies)
-            logger.error("{} crawl proxies:{}".format(p.site_name, pw.proxy_count))
+            logger.debug("{} crawl proxies:{}".format(p.site_name, pw.proxy_count))
             for p in proxies:
                 validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
         except Exception as e:
-            logger.error("{} crawl error:{}".format(p.site_name, e))
+            logger.debug("{} crawl error:{}".format(p.site_name, e))
             pw.stats = e .__class__.__name__
         finally:
             pw.merge()
 
 
 def validate_proxy_ip(p: ProxyIP):
-    v = ValidateManager(p)
-    try:
-        v.validate()
-    except (KeyboardInterrupt, SystemExit):
-        logger.info('KeyboardInterrupt terminates validate_proxy_ip: ' + p.ip)
+    if ValidateManager.should_validate(p):
+        v = ValidateManager(p)
+        try:
+            v.validate()
+        except (KeyboardInterrupt, SystemExit):
+            logger.info('KeyboardInterrupt terminates validate_proxy_ip: ' + p.ip)
+    else:
+        logger.info('skip validate {}  '.format(p.ip))
 
 
 def validate_ips(validator_queue: Queue, validator_pool: ThreadPoolExecutor):
@@ -58,11 +62,11 @@ def cron_schedule(scheduler):
         scheduler.feed_providers()
 
     def feed_from_db():
+        # scheduler.validator_queue.put(ProxyIP(ip="123.1.4.5",port="3128"))
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
         for p in proxies.execute():
             scheduler.validator_queue.put(p)
-            logger.debug('from database for validation: {}{}:{}' \
-                         .format('https://' if p.is_https else 'http://', p.ip, p.port))
+            # logger.debug('from database for validation: {}:{}'.format(p.ip, p.port))
 
     scheduler.feed_providers()
     feed_from_db()
@@ -86,7 +90,7 @@ class Scheduler(object):
         self.worker_process = None
         self.validator_thread = None
         self.cron_thread = None
-        self.validator_pool = ThreadPoolExecutor(max_workers=int(get_config('validation_pool', default='31')))
+        self.validator_pool = ThreadPoolExecutor(max_workers=int(get_config('validation_pool', default='128')))
 
     def start(self):
         """
@@ -124,7 +128,6 @@ class Scheduler(object):
 
     def feed_providers(self):
         logger.debug('feed {} providers...'.format(len(all_providers)))
-
         for provider in all_providers:
             self.worker_queue.put(provider())
 

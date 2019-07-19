@@ -1,5 +1,6 @@
 import json
 import requests
+from datetime import datetime, timedelta
 
 from pikapi.loggings import logger
 from pikapi.database import ProxyIP
@@ -39,3 +40,12 @@ class ValidateManager(object):
     def save(self):
         logger.debug(self._proxy)
         self._proxy.merge()
+
+    @classmethod
+    def should_validate(cls, proxy_ip: ProxyIP) -> bool:
+        if proxy_ip.id is None:
+            for p in ProxyIP.select().where(ProxyIP.ip == proxy_ip.ip):
+                if p.http_weight+proxy_ip.https_weight <= 0 \
+                        and datetime.now() - p.updated_at < timedelta(hours=24*p.failed_validate):
+                    return False
+        return True

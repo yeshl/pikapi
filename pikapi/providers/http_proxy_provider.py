@@ -17,7 +17,7 @@ class HttpProxyProvider(BaseProvider):
             'https://proxyhttp.net/free-list/anonymous-server-hide-ip-address/2#proxylist'
         ]
 
-    def parse(self, html: HTML) -> [ProxyIP]:
+    def parse(self, html: HTML):
         for ip_row in html.find('table.proxytbl tr'):
             ip_element = ip_row.find('td:nth-child(1)', first=True)
             port_element = ip_row.find('td:nth-child(2)', first=True)
