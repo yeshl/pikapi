@@ -21,6 +21,7 @@ class BaseProvider(object):
         self._use_browser = False
         self._render_js = False
         self._session = None
+        self._browser = None
         self._proxies = []
 
     @property
@@ -30,17 +31,15 @@ class BaseProvider(object):
     def parse(self, html: HTML):
         raise NotImplementedError
 
-    async def parse_by_browser(self, page):
+    async def async_parse_page(self, page):
         raise NotImplementedError
 
-    async def open_browser(self, url):
-        browser = await launch(headless=True, args=['--no-sandbox'])
-        page = await browser.newPage()
+    async def _async_page(self, url):
+        page = await self._browser.newPage()
         # await page.setUserAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36")
         await page.goto(url, options={'timeout': int(8 * 1000)})
         await page.waitForNavigation({'waitUntil': 'load'})  # 66ip第一次访问会返回521，这里wait即可，或者再调用一次goto也行
-        await self.parse_by_browser(page)
-        await browser.close()
+        await self.async_parse_page(page)
 
     def exec_js(html):
         raise NotImplementedError
@@ -72,21 +71,21 @@ class BaseProvider(object):
         finally:
             self._session.close()
 
-        return self._proxies
-
-
-
     def craw_by_browser(self):
-        tasks = [self.open_browser(url) for url in self._urls]
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*tasks))
-        return self._proxies
+        self._browser = loop.run_until_complete(launch(headless=True, args=['--no-sandbox']))
+        for url in self._urls:
+            logger.debug('async crawl {}'.format(url))
+            loop.run_until_complete(self._async_page(url))
+            logger.debug('{} async crawl proxies: {}'.format(url, len(self._proxies)))
+        loop.run_until_complete(self._browser.close())
 
     def crawl(self):
         if self._use_browser:
             self.craw_by_browser()
         else:
             self.craw_by_request()
+        return self._proxies
 
     def __str__(self):
         return self._site_name

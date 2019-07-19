@@ -11,14 +11,14 @@ class _66ipProvider(BaseProvider):
         super().__init__()
         self._site_name = 'www.66ip.cn'
         # self._sleep = 2
-        self._urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
-                     ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
+        # self._urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
+        #              ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
         self._use_browser = True
 
-        # self._urls = ['http://www.66ip.cn/1.html']
+        self._urls = ['http://www.66ip.cn/1.html']
         # self._headers["Host"] = "www.66ip.cn"
 
-    async def parse_by_browser(self, page):
+    async def async_parse_page(self, page):
         eles = await page.querySelectorAll('#main > div > div:nth-child(1) > table > tbody > tr')
         for it in eles:
             ip = await (await (await it.querySelector(':nth-child(1)')).getProperty('textContent')).jsonValue()
