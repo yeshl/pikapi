@@ -4,12 +4,10 @@ import logging
 
 from peewee import CharField, DateTimeField, BooleanField, FloatField, IntegerField, SqliteDatabase
 from playhouse.signals import pre_save, Model
-
 from pikapi.config import get_config
-from pikapi.loggings import logger
 
 _db = None
-
+logger = logging.getLogger(__name__)
 
 # logger = logging.getLogger('peewee')
 # logger.setLevel(logging.DEBUG)

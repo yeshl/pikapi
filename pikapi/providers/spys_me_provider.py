@@ -1,8 +1,6 @@
 import re
 
 from requests_html import HTML
-
-from pikapi.database import ProxyIP
 from pikapi.providers import BaseProvider
 
 

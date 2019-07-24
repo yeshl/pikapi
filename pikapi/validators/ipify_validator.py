@@ -1,9 +1,9 @@
-import requests
 import json
-import time
+import logging
 from pikapi.database import ProxyIP
-from pikapi.loggings import logger
 from pikapi.validators.base_validator import BaseValidator
+
+logger = logging.getLogger(__name__)
 
 
 class IpifyValidator(BaseValidator):

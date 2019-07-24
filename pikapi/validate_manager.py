@@ -2,7 +2,7 @@ import json
 import requests
 from datetime import datetime, timedelta
 
-from pikapi.loggings import logger
+from pikapi.applog import logger
 from pikapi.database import ProxyIP
 from pikapi.validators import all_validators
 

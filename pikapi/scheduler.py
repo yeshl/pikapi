@@ -1,3 +1,4 @@
+import logging
 import time
 import schedule
 
@@ -7,29 +8,35 @@ from multiprocessing import Queue, Process
 from threading import Thread
 from pikapi.config import get_config
 from pikapi.database import ProxyIP, ProxyWebSite
-from pikapi.loggings import logger
 from pikapi.providers import *
 from pikapi.validate_manager import ValidateManager
 
+logger = logging.getLogger(__name__)
+
+
+def crawl_callback(future):
+    provider, validator_queue, exc = future.result()
+    proxies = list(set(provider._proxies))
+    pw: ProxyWebSite = ProxyWebSite(site_name=provider.site_name)
+    if exc is None:
+        pw.stats = 'OK'
+    else:
+        pw.stats = exc.arg[0]
+        logger.debug("{} crawl error:{}".format(provider.site_name, exc))
+
+    pw.proxy_count = len(proxies)
+    logger.debug("{} crawl proxies:{}".format(provider.site_name, pw.proxy_count))
+    for p in proxies:
+        validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
+    pw.merge()
+
 
 def crawl_ips(provider_queue: Queue, validator_queue: Queue):
+    executor = ThreadPoolExecutor(max_workers=64)
     while True:
         p: BaseProvider = provider_queue.get()
-        pw: ProxyWebSite = ProxyWebSite(site_name=p.site_name)
-        logger.debug("{} crawling...".format(p))
-        pw.stats = 'OK'
-        try:
-            proxies = p.crawl()
-            proxies = list(set(proxies))
-            pw.proxy_count = len(proxies)
-            logger.debug("{} crawl proxies:{}".format(p.site_name, pw.proxy_count))
-            for p in proxies:
-                validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
-        except Exception as e:
-            logger.debug("{} crawl error:{}".format(p.site_name, e))
-            pw.stats = e .__class__.__name__
-        finally:
-            pw.merge()
+        future = executor.submit(p.crawl, validator_queue)
+        future.add_done_callback(crawl_callback)
 
 
 def validate_proxy_ip(p: ProxyIP):
@@ -62,7 +69,6 @@ def cron_schedule(scheduler):
         scheduler.feed_providers()
 
     def feed_from_db():
-        # scheduler.validator_queue.put(ProxyIP(ip="123.1.4.5",port="3128"))
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
         for p in proxies.execute():
             scheduler.validator_queue.put(p)
@@ -92,6 +98,11 @@ class Scheduler(object):
         self.cron_thread = None
         self.validator_pool = ThreadPoolExecutor(max_workers=int(get_config('validation_pool', default='128')))
 
+    def feed_providers(self):
+        logger.debug('feed {} providers...'.format(len(all_providers)))
+        for provider in all_providers:
+            self.worker_queue.put(provider())
+
     def start(self):
         """
         Start the scheduler with processes for worker (fetching candidate proxies from different providers),
@@ -99,8 +110,7 @@ class Scheduler(object):
         """
         logger.info('Scheduler starts...')
         self.cron_thread = Thread(target=cron_schedule, args=(self,), daemon=True)
-        # self.worker_process = Process(target=crawl_ips, args=(self.worker_queue, self.validator_queue))
-        self.worker_process = Thread(target=crawl_ips, args=(self.worker_queue, self.validator_queue))
+        self.worker_process = Process(target=crawl_ips, args=(self.worker_queue, self.validator_queue))
         self.validator_thread = Thread(target=validate_ips, args=(self.validator_queue, self.validator_pool))
 
         self.cron_thread.daemon = True
@@ -108,16 +118,12 @@ class Scheduler(object):
         self.validator_thread.daemon = True
 
         self.cron_thread.start()
-        self.worker_process.start()  # Python will wait for all process finished
+        self.worker_process.start()
         logger.info('worker_process started')
         self.validator_thread.start()
         logger.info('validator_thread started')
 
     def join(self):
-        """
-        Wait for worker processes and validator threads
-
-        """
         while (self.worker_process and self.worker_process.is_alive()) or (
                 self.validator_thread and self.validator_thread.is_alive()):
             try:
@@ -125,11 +131,6 @@ class Scheduler(object):
                 self.validator_thread.join()
             except (KeyboardInterrupt, SystemExit):
                 break
-
-    def feed_providers(self):
-        logger.debug('feed {} providers...'.format(len(all_providers)))
-        for provider in all_providers:
-            self.worker_queue.put(provider())
 
     def stop(self):
         self.worker_queue.close()

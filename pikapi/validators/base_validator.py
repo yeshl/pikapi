@@ -5,14 +5,13 @@ import requests
 import json
 from pikapi.database import ProxyIP
 from .tcpping import ping
-from pikapi.loggings import logger
 
 IP_CHECKER_API = 'http://api.ipify.org/?format=json'
 IP_CHECKER_API_SSL = 'https://api.ipify.org/?format=json'
 IP_INFO_AIP = 'http://ip-api.com/json/{0}?lang=zh-CN'
 IP_INFO_AIP2 = 'http://ip.taobao.com/service/getIpInfo.php?ip={}'
 logging.captureWarnings(True)
-
+logger = logging.getLogger(__name__)
 
 class BaseValidator(object):
     def __init__(self, proxy_ip: ProxyIP, eip: str):

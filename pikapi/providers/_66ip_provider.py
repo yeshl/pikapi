@@ -1,9 +1,9 @@
+import logging
 import re
 
-import execjs
 from requests_html import HTML
-from pikapi.loggings import logger
 from pikapi.providers.base_provider import BaseProvider
+logger = logging.getLogger(__name__)
 
 
 class _66ipProvider(BaseProvider):
@@ -13,8 +13,7 @@ class _66ipProvider(BaseProvider):
         # self._sleep = 2
         # self._urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
         #              ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
-        self._use_browser = True
-
+        self._browse_url = 'http://www.66ip.cn'
         self._urls = ['http://www.66ip.cn/1.html']
         # self._headers["Host"] = "www.66ip.cn"
 

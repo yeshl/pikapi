@@ -14,7 +14,6 @@ from pikapi.database import create_db_tables
 from pikapi.config import set_config
 
 
-
 class TestValidateManager(TestCase):
     def setUp(self) -> None:
         create_db_tables()

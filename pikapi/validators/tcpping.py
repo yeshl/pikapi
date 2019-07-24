@@ -1,9 +1,10 @@
+import logging
 import socket
 import time
 from timeit import default_timer as timer
 
 from six.moves import zip_longest
-
+logger = logging.getLogger(__name__)
 
 def avg(x):
     return sum(x) / float(len(x))

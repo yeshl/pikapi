@@ -1,11 +1,9 @@
 from requests_html import HTML
 
-from pikapi.database import ProxyIP
 from pikapi.providers import BaseProvider
 
 
 class Data5uProvider(BaseProvider):
-
     def __init__(self):
         super().__init__()
         self._site_name = 'www.data5u.com'

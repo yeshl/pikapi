@@ -1,14 +1,17 @@
 import argparse
+import logging
 import sys
-
+import pikapi
+import pikapi.applog
 from pikapi.config import batch_set_config, get_config
-from ._version import __version__
 
 CMD_DESCRIPTION = """pikapi command line mode
 This command could start a scheduler for crawling and validating proxies.
 In addition, a web server with APIs can also be launched.
 
 """
+
+logger = logging.getLogger(pikapi.__package__)
 
 
 def main(args) -> int:
@@ -38,17 +41,15 @@ def main(args) -> int:
     handle_special_flags(parsed_args_dict)
 
     from pikapi.database import create_db_tables
-    from pikapi.loggings import logger
     from pikapi.scheduler import Scheduler
     from pikapi.web import start_web_server
 
     create_db_tables()
-
     s = Scheduler()
 
     try:
-        if not get_config('skip_scheduler'):
-            s.start()
+        # if not get_config('skip_scheduler'):
+        #     s.start()
 
         # web server
         if not get_config('no_webserver'):
@@ -65,7 +66,7 @@ def main(args) -> int:
 
 def handle_special_flags(args: dict):
     if args['version']:
-        print('v{}'.format(__version__))
+        print('v{}'.format(pikapi.__version__))
         sys.exit(0)
 
 

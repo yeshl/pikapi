@@ -2,11 +2,12 @@
 from http.server import HTTPStatus, HTTPServer, BaseHTTPRequestHandler
 from urllib import parse
 from pikapi.database import ProxyIP, ProxyWebSite
-from pikapi.loggings import logger
+import logging
 from threading import Thread
 from datetime import datetime, timedelta
 import json
 
+logger = logging.getLogger(__name__)
 _valid_proxies_query = ProxyIP.select()\
                       .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
                       .where(ProxyIP.http_weight + ProxyIP.https_weight > 0)\

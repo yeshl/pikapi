@@ -1,8 +1,4 @@
-import requests
-import json
-import time
 from pikapi.database import ProxyIP
-from pikapi.loggings import logger
 from pikapi.validators.base_validator import BaseValidator
 
 

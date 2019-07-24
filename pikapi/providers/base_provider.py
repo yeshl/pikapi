@@ -1,12 +1,14 @@
 import asyncio
+import logging
 import time
 import traceback
 
 from pyppeteer import launch
 from requests_html import HTML
 from requests_html import HTMLSession
-from pikapi.loggings import logger
 from fake_useragent import UserAgent
+
+logger = logging.getLogger(__name__)
 
 
 class BaseProvider(object):
@@ -18,7 +20,7 @@ class BaseProvider(object):
         }
         self._site_name = self.__class__.__name__
         self._urls = []
-        self._use_browser = False
+        self._browse_url = None
         self._render_js = False
         self._session = None
         self._browser = None
@@ -41,8 +43,6 @@ class BaseProvider(object):
         await page.waitForNavigation({'waitUntil': 'load'})  # 66ip第一次访问会返回521，这里wait即可，或者再调用一次goto也行
         await self.async_parse_page(page)
 
-    def exec_js(html):
-        raise NotImplementedError
 
     def get_html(self, url: str):
         resp = self._session.get(url, headers=self._headers, timeout=15)
@@ -80,12 +80,16 @@ class BaseProvider(object):
             logger.debug('{} async crawl proxies: {}'.format(url, len(self._proxies)))
         loop.run_until_complete(self._browser.close())
 
-    def crawl(self):
-        if self._use_browser:
-            self.craw_by_browser()
-        else:
-            self.craw_by_request()
-        return self._proxies
+    def crawl(self, validator_queue):
+        exc = None
+        try:
+            if self._use_browser:
+                self.craw_by_browser()
+            else:
+                self.craw_by_request()
+        except Exception as e:
+            exc = e
+        return self, validator_queue, exc
 
     def __str__(self):
         return self._site_name

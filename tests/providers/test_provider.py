@@ -19,7 +19,6 @@ class TestProvider(unittest.TestCase):
         #self.assert_provider(KuaidailiProvider())
         # self.assert_provider(MrhinkydinkProvider())
         self.assert_provider(_66ipProvider())
-
         # self.assert_provider(XiciProvider())
         # for p in all_providers:
         #     self.assert_provider(p())
