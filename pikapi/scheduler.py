@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)
 
 def crawl_callback(future):
     provider, validator_queue, exc = future.result()
-    proxies = list(set(provider._proxies))
+    proxies = list(set(provider.proxies))
     pw: ProxyWebSite = ProxyWebSite(site_name=provider.site_name)
     if exc is None:
         pw.stats = 'OK'
     else:
-        pw.stats = exc.arg[0]
+        # pw.stats = exc.arg[0]
+        pw.stats = exc.__class__.__name__
         logger.debug("{} crawl error:{}".format(provider.site_name, exc))
 
     pw.proxy_count = len(proxies)
@@ -32,7 +33,7 @@ def crawl_callback(future):
 
 
 def crawl_ips(provider_queue: Queue, validator_queue: Queue):
-    executor = ThreadPoolExecutor(max_workers=64)
+    executor = ThreadPoolExecutor(max_workers=32)
     while True:
         p: BaseProvider = provider_queue.get()
         future = executor.submit(p.crawl, validator_queue)
@@ -65,9 +66,6 @@ def cron_schedule(scheduler):
     """
     exit_flag = False
 
-    def feed():
-        scheduler.feed_providers()
-
     def feed_from_db():
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
         for p in proxies.execute():
@@ -75,8 +73,9 @@ def cron_schedule(scheduler):
             # logger.debug('from database for validation: {}:{}'.format(p.ip, p.port))
 
     scheduler.feed_providers()
+    schedule.every(15).minutes.do(scheduler.feed_providers)
+
     feed_from_db()
-    schedule.every(15).minutes.do(feed)
     schedule.every(7).minutes.do(feed_from_db)
     logger.info('Start python scheduler')
 

@@ -1,6 +1,7 @@
 import logging
 import re
 
+from lxml import etree
 from requests_html import HTML
 from pikapi.providers.base_provider import BaseProvider
 logger = logging.getLogger(__name__)
@@ -11,17 +12,19 @@ class _66ipProvider(BaseProvider):
         super().__init__()
         self._site_name = 'www.66ip.cn'
         # self._sleep = 2
+        self._encoding = 'gbk'
+        self._base_url = 'http://www.66ip.cn'
         # self._urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
         #              ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
-        self._browse_url = 'http://www.66ip.cn'
         self._urls = ['http://www.66ip.cn/1.html']
-        # self._headers["Host"] = "www.66ip.cn"
+        self._use_browser = True
 
-    async def async_parse_page(self, page):
-        eles = await page.querySelectorAll('#main > div > div:nth-child(1) > table > tbody > tr')
-        for it in eles:
-            ip = await (await (await it.querySelector(':nth-child(1)')).getProperty('textContent')).jsonValue()
-            port = await (await (await it.querySelector(':nth-child(2)')).getProperty('textContent')).jsonValue()
+    def parse_html(self, htext):
+        html = etree.HTML(htext)
+        table = html.xpath('//table/tr[position()>1]')
+        for r in table:
+            ip = r.xpath(".//td[1]/text()")[0]
+            port = r.xpath(".//td[2]/text()")[0]
             if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
                 self._proxies.append((ip, port))
 

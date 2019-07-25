@@ -7,17 +7,7 @@ class XiciProvider(BaseProvider):
     def __init__(self):
         super().__init__()
         self._site_name = 'xicidaili'
-        self._urls = [
-            'http://www.xicidaili.com/nn/1',
-            'http://www.xicidaili.com/nn/2',
-            'http://www.xicidaili.com/nn/3',
-            'http://www.xicidaili.com/wn/1',
-            'http://www.xicidaili.com/wn/2',
-            'http://www.xicidaili.com/wn/3',
-            'http://www.xicidaili.com/wt/1',
-            'http://www.xicidaili.com/wt/2',
-            'http://www.xicidaili.com/wt/3'
-        ]
+        self._urls = ['http://www.xicidaili.com/{}/{}'.format(c, i) for c in ['nn', 'wn', 'wt'] for i in range(1, 4)]
 
     def parse(self, html: HTML):
         for ip_row in html.find('#ip_list tr'):

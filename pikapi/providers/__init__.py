@@ -12,24 +12,24 @@ from .spys_one_provider import SpysOneProvider
 from .xici_provider import XiciProvider
 from .ipaddress_provider import IpaddressProvider
 
-# all_providers = [
-#     A2uProvider,
-#     CoolProxyProvider,
-#     #Data5uProvider,
-#     FreeProxyListProvider,
-#     HttpProxyProvider,
-#     KuaidailiProvider,
-#     SpyMeProvider,
-#     SpysOneProvider,
-#     XiciProvider,
-#     IpaddressProvider,
-#     MrhinkydinkProvider,
-#     _66ipProvider
-# ]
-
 all_providers = [
+    A2uProvider,
+    CoolProxyProvider,
+    #Data5uProvider,
+    FreeProxyListProvider,
+    HttpProxyProvider,
+    KuaidailiProvider,
+    SpyMeProvider,
+    SpysOneProvider,
+    XiciProvider,
+    IpaddressProvider,
+    MrhinkydinkProvider,
     _66ipProvider
 ]
+
+# all_providers = [
+#     _66ipProvider
+# ]
 
 # Provider references:
 # https://github.com/franklingu/proxypool/issues/2
