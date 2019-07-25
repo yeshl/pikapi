@@ -29,8 +29,8 @@ class TestProvider(unittest.TestCase):
         err = 'OK'
         proxies = []
         try:
-            proxies = p.crawl()
-            proxies = set(proxies)
+            provider, validator_queue, exc = p.crawl(None)
+            proxies = set(provider.proxies)
             pw.proxy_count = len(proxies)
         except Exception as e:
             print("{} crawl error:{}".format(p.site_name, e))

@@ -49,6 +49,11 @@ class BaseProvider(object):
         await page.waitForNavigation({'waitUntil': 'load'})  # 66ip第一次访问会返回521，这里wait即可，或者再调用一次goto也行
         await self.async_parse_page(page)
 
+    def get_html(self, url: str):
+        resp = self._session.get(url, timeout=15)
+        if resp and resp.ok and self._render_js:
+            resp.html.render(wait=1.5, timeout=10.0)
+        return resp.html if resp else None
 
     def craw_by_request(self):
         self._session = HTMLSession()
@@ -66,7 +71,7 @@ class BaseProvider(object):
             self._session.close()
 
     def reqs(self, url, header):
-        logger.debug('crawling...s%', url)
+        logger.debug('crawling... %s', url)
         resp = requests.get(url, headers=header)
         resp.encoding = self._encoding
         self.parse_html(resp.text)
