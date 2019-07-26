@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 import pikapi
-import pikapi.applog
+
 from pikapi.config import batch_set_config, get_config
 
 CMD_DESCRIPTION = """pikapi command line mode
@@ -33,11 +33,8 @@ def main(args) -> int:
                         help='The validation pool size (i.e. the limit of concurrent validation tasks for proxies)')
 
     parsed_args = parser.parse_args(args)
-
     parsed_args_dict = vars(parsed_args)
-
     batch_set_config(**vars(parsed_args))
-
     handle_special_flags(parsed_args_dict)
 
     from pikapi.database import create_db_tables
@@ -60,7 +57,6 @@ def main(args) -> int:
         logger.info('catch KeyboardInterrupt, exiting...')
         s.stop()
         sys.exit(0)
-
     return 0
 
 

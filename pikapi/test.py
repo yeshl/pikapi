@@ -1,13 +1,27 @@
-import logging
-import multiprocessing
-import threading
+from multiprocessing import Process, Queue
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s-[line:%(lineno)d]%(levelname)5s: %(message)s',
-                    datefmt='[%Y-%m-%d %H:%M:%S]')
-logger = logging.getLogger()
+
+class Person:
+    name = 'Person'
+
+    def __init__(self):
+        self.fname = 'person'
+
+    def say(self):
+        print(self.name, self.fname)
+
+
+class Boy(Person):
+    name = 'Boy'
+
+    def __init__(self):
+        self.fname = 'boy'
+
+    def say(self):
+        print('boy say')
+        super().say()
+
 
 if __name__ == '__main__':
-    pn = multiprocessing.current_process().name
-    if 'MainProcess' != pn and len(pn.split('-')) > 1:
-        logger.debug('thread: %s', pn.split('-')[1])
+    b = Boy()
+    b.say()

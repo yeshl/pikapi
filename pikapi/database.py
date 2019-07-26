@@ -1,9 +1,8 @@
 import datetime
-import math
 import logging
 
-from peewee import CharField, DateTimeField, BooleanField, FloatField, IntegerField, SqliteDatabase
-from playhouse.signals import pre_save, Model
+from peewee import CharField, DateTimeField,  FloatField, IntegerField, SqliteDatabase
+from playhouse.signals import Model
 from pikapi.config import get_config
 
 _db = None
@@ -19,8 +18,9 @@ def create_connection() -> SqliteDatabase:
     if _db:
         return _db
     else:
-        logger.debug('create new db connection')
-        _db = SqliteDatabase(get_config('db_path', './pikapi.db'))
+        db_path = get_config('db_path', './pikapi.db')
+        logger.debug('create new db connection %s', db_path)
+        _db = SqliteDatabase(db_path)
         return _db
 
 
@@ -30,8 +30,8 @@ def create_db_tables():
 
 
 class BaseModel(Model):
-    class Meta:
-        database = create_connection()
+     class Meta:
+         database = create_connection()
 
 
 class ProxyWebSite(BaseModel):
@@ -102,7 +102,3 @@ class ProxyIP(BaseModel):
         if 0 == cnt:
             cnt = self.save()
         return cnt
-
-# @pre_save(sender=ProxyIP)
-# def proxy_ip_on_pre_save_handler(model_class, instance: ProxyIP, created):
-#     instance.latency = math.floor(instance.latency if instance.latency else -1)
