@@ -149,7 +149,9 @@ class CookieSpider(Spider):
         task = asyncio.ensure_future(self.browse(home_url))
         task.add_done_callback(self.callback)
         asyncio.get_event_loop().run_until_complete(task)
+        logger.debug("closing browser...")
         loop.run_until_complete(self._browser.close())
+        logger.debug("browser closed.")
 
     def crawl(self,obj):
         self.req_cookie(self._home_url)
@@ -194,7 +196,9 @@ class BrowserSpider(Spider):
         for t in tasks:
             t.add_done_callback(self.callback)
         rst = asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
+        logger.debug("closing browser...")
         loop.run_until_complete(self._browser.close())
+        logger.debug("browser closed.")
 
     def crawl(self, obj):
         exc = None

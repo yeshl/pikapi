@@ -5,10 +5,10 @@ from setuptools import setup, find_packages
 
 import pikapi
 
-here = os.path.abspath(os.path.dirname(__file__))
-# Import the README and use it as the long-description.
-with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = '\n' + f.read()
+# here = os.path.abspath(os.path.dirname(__file__))
+# # Import the README and use it as the long-description.
+# with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+#     long_description = '\n' + f.read()
 
 with open('requirements.txt') as f:
     required = f.read().splitlines()
@@ -24,11 +24,10 @@ setup(
     },
     version=pikapi.__version__,
     description='Intelligent proxy pool for Humans™',
-    long_description=long_description,
+    # long_description=long_description,
     author=pikapi.__author__,
-    author_email='wildcat.name@gmail.com',
-    url='https://github.com/imWildCat/pikapi',
-    # download_url='https://github.com/imWildCat/pikapi/archive/0.1.0.tar.gz',
+    author_email='12318785@qq.com',
+    url='https://github.com/yeshl/pikapi/',
     keywords=['proxy', 'api', 'pikapi'],
     classifiers=[
         # Trove classifiers

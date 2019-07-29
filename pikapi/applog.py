@@ -16,9 +16,9 @@ _ch.setLevel(logging.DEBUG)
 _ch.setFormatter(_formatter)
 
 #开发时日志目录
-logdir = os.path.dirname(os.path.abspath(__file__))+'/log'
+# logdir = os.path.dirname(os.path.abspath(__file__))+'/log'
 #发布后日志目录请自行修改
-# logdir = '.'
+logdir = '.'
 
 #多进程，每进程使用独立日志
 pn = multiprocessing.current_process().name
@@ -27,9 +27,9 @@ if 'MainProcess' != pn and len(pn.split('-')) > 1:
 else:
    logfile = '{}/{}.log'.format(logdir, __package__)
 # 多进程使用相同日志
-# _fh = concurrent_log_handler.ConcurrentRotatingFileHandler(logfile, "a", maxBytes=1000000, backupCount=5)
+# _fh = concurrent_log_handler.ConcurrentRotatingFileHandler(logfile, "a", maxBytes=10000000, backupCount=5)
 
-_fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=1000000, backupCount=5)
+_fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=20000000, backupCount=5)
 _fh.setLevel(logging.DEBUG)
 _fh.setFormatter(_formatter)
 

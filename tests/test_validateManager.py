@@ -8,10 +8,9 @@
 from unittest import TestCase
 
 from pikapi.database import ProxyIP
-from pikapi.validate_manager import ValidateManager
+from pikapi.validators.validate_manager import ValidateManager
 
 from pikapi.database import create_db_tables
-from pikapi.config import set_config
 
 
 class TestValidateManager(TestCase):

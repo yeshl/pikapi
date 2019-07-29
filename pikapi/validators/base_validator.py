@@ -87,10 +87,11 @@ class BaseValidator(object):
             r = requests.get(self._http_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=10)
             if r.ok:
                 ip = self.parse_ip(r.text)
-                self._proxy_ip.http_pass_proxy_ip = ip
+                if ip is not None and len(ip) > 0:
+                    self._proxy_ip.http_pass_proxy_ip = ip
+                    if ip != self._external_ip:
+                        self._proxy_ip.http_anonymous += 1
                 self._proxy_ip.http_weight += 1
-                if ip != self._external_ip:
-                    self._proxy_ip.http_anonymous += 1
         # except requests.RequestException as e:
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._http_check_url, self._proxy['http'], e.__str__()))
@@ -101,10 +102,11 @@ class BaseValidator(object):
             r = requests.get(self._https_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=10)
             if r.ok:
                 ip = self.parse_ip(r.text)
-                self._proxy_ip.https_pass_proxy_ip = ip
+                if ip is not None and len(ip) > 0:
+                    self._proxy_ip.https_pass_proxy_ip = ip
+                    if ip != self._external_ip:
+                        self._proxy_ip.https_anonymous += 1
                 self._proxy_ip.https_weight += 1
-                if ip != self._external_ip:
-                    self._proxy_ip.https_anonymous += 1
         # except requests.RequestException as e:
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._https_check_url, self._proxy['https'], e.__str__()))

@@ -1,4 +1,3 @@
-import logging
 import time
 import schedule
 
@@ -9,7 +8,7 @@ from threading import Thread
 from pikapi.config import get_config
 from pikapi.database import ProxyIP, ProxyWebSite
 from pikapi.spiders import *
-from pikapi.validate_manager import ValidateManager
+from pikapi.validators.validate_manager import ValidateManager
 
 logger = logging.getLogger(__name__)
 

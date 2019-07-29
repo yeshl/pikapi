@@ -17,11 +17,11 @@ logger = logging.getLogger('pikapi.test')
 class TestProvider(unittest.TestCase):
     def test(self):
         create_db_tables()
-        # self.assert_provider(Spider66ip())
+        self.assert_provider(Spider66ip())
         # self.assert_provider(SpiderA2u())
         # self.assert_provider(SpiderCoolProxy())
         # self.assert_provider(SpiderData5u())
-        self.assert_provider(SpiderIpaddress())
+        # self.assert_provider(SpiderIpaddress())
         # self.assert_provider(SpiderKuaidaili())
         # self.assert_provider(SpiderMrhinkydink())
         # self.assert_provider(SpiderClarketm())

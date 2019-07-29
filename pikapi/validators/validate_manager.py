@@ -35,6 +35,9 @@ class ValidateManager(object):
         for vs in all_validators:
             validator = vs(self._proxy, get_current_ip())
             validator.validate(1)
+            if self._proxy.http_weight+self._proxy.https_weight <= 0:
+                break
+
         self.save()
 
     def save(self):
