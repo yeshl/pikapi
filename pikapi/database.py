@@ -1,5 +1,6 @@
 import datetime
 import logging
+import types
 
 from peewee import CharField, DateTimeField,  FloatField, IntegerField, SqliteDatabase
 from playhouse.signals import Model
@@ -15,13 +16,15 @@ logger = logging.getLogger(__name__)
 
 def create_connection() -> SqliteDatabase:
     global _db
-    if _db:
-        return _db
-    else:
+    if not _db:
         db_path = get_config('db_path', './pikapi.db')
         logger.debug('create new db connection %s', db_path)
-        _db = SqliteDatabase(db_path)
-        return _db
+        _db = SqliteDatabase(db_path,pragmas={'journal_mode': 'wal'})
+        _db.timeout=15
+        for k in ['timeout','thread_safe','cache_size','page_size','journal_mode','foreign_keys']:
+            o = getattr(_db, k)
+            logger.debug("db.{}={}".format(k, str(o)))
+    return _db
 
 
 def create_db_tables():
@@ -67,7 +70,7 @@ class ProxyIP(BaseModel):
     port = IntegerField()
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
-    latency = FloatField()
+    latency = FloatField(default=-1)
     failed_validate = IntegerField(default=0)
     http_pass_proxy_ip = CharField(null=True, max_length=16)
     https_pass_proxy_ip = CharField(null=True, max_length=16)

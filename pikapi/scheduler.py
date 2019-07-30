@@ -50,7 +50,7 @@ class Scheduler(object):
         self.worker_process = None
         self.validator_thread = None
         self.cron_thread = None
-        self.validator_pool = ThreadPoolExecutor(max_workers=int(get_config('validation_pool', default='128')))
+        self.validator_pool = ThreadPoolExecutor(max_workers=128)
 
     def feed_from_db(self):
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
@@ -115,8 +115,9 @@ class Scheduler(object):
         self.cron_thread.start()
         self.worker_process.start()
         logger.info('spider_process started')
-        self.validator_thread.start()
-        logger.info('validator_thread started')
+        if not get_config('no_validation'):
+            self.validator_thread.start()
+            logger.info('validator_thread started')
 
     def join(self):
         while (self.worker_process and self.worker_process.is_alive()) or (

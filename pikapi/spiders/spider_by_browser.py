@@ -15,7 +15,7 @@ class SpiderCoolProxy(BrowserSpider):
 
     def __init__(self):
         super().__init__()
-        self._req_timeout = 60
+        self._req_timeout = 30
 
     async def browse(self, url):
         async with self._semaphore:

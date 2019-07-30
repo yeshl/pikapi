@@ -144,15 +144,17 @@ class CookieSpider(Spider):
         loop = asyncio.get_event_loop()
         self._browser = loop.run_until_complete(launch(headless=True, handleSIGINT=False,
                                                        handleSIGTERM=False, handleSIGHUP=False,
-                                                       # args=['--no-sandbox']
+                                                       args=['--no-sandbox']
                                                        ))
 
         task = asyncio.ensure_future(self.browse(home_url))
         task.add_done_callback(self.callback)
-        asyncio.get_event_loop().run_until_complete(task)
-        logger.debug("closing browser...")
-        loop.run_until_complete(self._browser.close())
-        logger.debug("browser closed.")
+        try:
+            asyncio.get_event_loop().run_until_complete(task)
+        # except Exception as e:
+        #     logger.error("asyncio error:%s", str(e), exc_info=True)
+        finally:
+            loop.run_until_complete(self._browser.close())
 
     def crawl(self,obj):
         self.req_cookie(self._home_url)
@@ -181,26 +183,28 @@ class BrowserSpider(Spider):
             return html
 
     def callback(self, future):
-        html = future.result()
-        # logger.info('browse :%s', html)
-        self.parse(html)
+            html = future.result()
+            self.parse(html)
 
     def crawl_by_browser(self):
         if 'MainThread' != threading.current_thread().name:
             asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
-        self._semaphore = asyncio.Semaphore(3)
-        self._browser = loop.run_until_complete(launch(headless=True, handleSIGINT=False,
+        self._semaphore = asyncio.Semaphore(5)
+        self._browser = loop.run_until_complete(launch(headless=False, handleSIGINT=False,
                                                        handleSIGTERM=False, handleSIGHUP=False,
-                                                       # args=['--no-sandbox']
+                                                       args=['--no-sandbox']
                                                        ))
         tasks = [asyncio.ensure_future(self.browse(url)) for url in self.start_urls]
         for t in tasks:
             t.add_done_callback(self.callback)
-        rst = asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
-        logger.debug("closing browser...")
-        loop.run_until_complete(self._browser.close())
-        logger.debug("browser closed.")
+        try:
+            rst = asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
+        # except Exception as e:
+        #     logger.error("asyncio error:%s", str(e), exc_info=True)
+        #     raise e
+        finally:
+            loop.run_until_complete(self._browser.close())
 
     def crawl(self, obj):
         exc = None
