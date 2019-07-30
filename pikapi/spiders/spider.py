@@ -91,7 +91,7 @@ class Spider(object):
                     self.parse(resp.text)
                     logger.debug('{} crawl proxies: {}'.format(url, len(self._proxies)))
                 else:
-                    logger.error("response code{} from :{}".format(resp.status_code,url))
+                    logger.error("response code：{} from {}".format(resp.status_code,url))
                 time.sleep(self._sleep)
         except Exception as e:
             exc = e
@@ -144,7 +144,8 @@ class CookieSpider(Spider):
         loop = asyncio.get_event_loop()
         self._browser = loop.run_until_complete(launch(headless=True, handleSIGINT=False,
                                                        handleSIGTERM=False, handleSIGHUP=False,
-                                                       args=['--no-sandbox']))
+                                                       # args=['--no-sandbox']
+                                                       ))
 
         task = asyncio.ensure_future(self.browse(home_url))
         task.add_done_callback(self.callback)
@@ -191,7 +192,8 @@ class BrowserSpider(Spider):
         self._semaphore = asyncio.Semaphore(3)
         self._browser = loop.run_until_complete(launch(headless=True, handleSIGINT=False,
                                                        handleSIGTERM=False, handleSIGHUP=False,
-                                                       args=['--no-sandbox']))
+                                                       # args=['--no-sandbox']
+                                                       ))
         tasks = [asyncio.ensure_future(self.browse(url)) for url in self.start_urls]
         for t in tasks:
             t.add_done_callback(self.callback)

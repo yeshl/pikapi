@@ -5,6 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from multiprocessing import Queue, Process
 from threading import Thread
+
+from pyppeteer import launch
+
 from pikapi.config import get_config
 from pikapi.database import ProxyIP, ProxyWebSite
 from pikapi.spiders import *

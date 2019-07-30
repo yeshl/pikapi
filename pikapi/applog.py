@@ -29,7 +29,7 @@ else:
 # 多进程使用相同日志
 # _fh = concurrent_log_handler.ConcurrentRotatingFileHandler(logfile, "a", maxBytes=10000000, backupCount=5)
 
-_fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=20000000, backupCount=5)
+_fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=20000000, backupCount=5, encoding ="UTF-8")
 _fh.setLevel(logging.DEBUG)
 _fh.setFormatter(_formatter)
 

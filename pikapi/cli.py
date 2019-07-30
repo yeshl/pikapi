@@ -1,7 +1,14 @@
 import argparse
+import asyncio
 import logging
 import sys
+
+from pyppeteer import launch
+
 import pikapi
+
+import pyppeteer
+
 
 from pikapi.config import batch_set_config, get_config
 
@@ -14,9 +21,31 @@ In addition, a web server with APIs can also be launched.
 logger = logging.getLogger(pikapi.__package__)
 
 
+async def get_html(url):
+    browser = await launch(headless=False)
+    pages = await browser.pages()
+    page = pages[0]
+    # await page.setUserAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36")
+    logger.debug('goto: %s' % url)
+    await page.goto(url, options={'timeout': int(30 * 1000)})
+    # await page.waitForNavigation({'timeout': 1000 * 30})
+    # html = await page.content()
+    html = await page.title()
+    await page.close()
+    logger.debug('close chrome now...')
+    await browser.close()
+    logger.debug('chrome closed')
+    return html
+
+
 def main(args) -> int:
+    logger.debug('chromium version %s', pyppeteer.chromium_downloader.REVISION)
+    logger.debug('local path %s', pyppeteer.chromium_downloader.chromiumExecutable)
+    logger.debug('download url %s', pyppeteer.chromium_downloader.downloadURLs)
     parser = argparse.ArgumentParser(description=CMD_DESCRIPTION,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--browser-test', '-bt', action='store_true',
+                        help='test browser for pyppeteer')
     parser.add_argument('--no-webserver', '-no-ws', action='store_true',
                         help='Prevent starting a web server for JSON API')
     parser.add_argument('--web-port', '-wp', type=int, default=8899,
@@ -36,6 +65,7 @@ def main(args) -> int:
     parsed_args_dict = vars(parsed_args)
     batch_set_config(**vars(parsed_args))
     handle_special_flags(parsed_args_dict)
+
 
     from pikapi.database import create_db_tables
     from pikapi.scheduler import Scheduler
@@ -62,9 +92,11 @@ def main(args) -> int:
 
 def handle_special_flags(args: dict):
     if args['version']:
-        print('v{}'.format(pikapi.__version__))
-        sys.exit(0)
-
+        logger.debug('v{}'.format(pikapi.__version__))
+    if args['browser_test']:
+        text = asyncio.get_event_loop().run_until_complete(get_html("https://www.baidu.com"))
+        logger.debug(text)
+    sys.exit(0)
 
 def app_main():
     sys.exit(main(sys.argv[1:]))
