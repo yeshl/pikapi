@@ -9,5 +9,5 @@ all_validators = [
     SohuValidator,
     # IpifyValidator,
     # IcanhazipValidator,
-    # YslValidator
+    YslValidator
 ]

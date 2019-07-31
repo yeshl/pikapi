@@ -1,6 +1,10 @@
+import asyncio
 import logging
+import re
+
+from lxml import etree
 from pyquery import PyQuery
-from pikapi.spiders.spider import  BrowserSpider
+from pikapi.spiders.spider import BrowserSpider
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +13,8 @@ class SpiderCoolProxy(BrowserSpider):
     name = 'www.cool-proxy.net'
     start_urls = [
             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1',
-            'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
-            'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:3'
+            # 'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
+            # 'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:3'
         ]
 
     def __init__(self):
@@ -35,4 +39,23 @@ class SpiderCoolProxy(BrowserSpider):
         for tr in info.items():
             ip = tr("td:first-child").text()
             port = tr("td").eq(1).text()
-            self._proxies.append((ip, port))
+            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
+                self._proxies.append((ip, port))
+
+
+class SpiderGoubanjia(BrowserSpider):
+    name = 'www.goubanjia.com'
+    start_urls = ['http://www.goubanjia.com/']
+
+    def parse(self, html):
+        #直接请求返回的端口是不对的，所以改用浏览器请求
+        # doc = PyQuery(html)
+        # trs = doc('tr.success, .warning')
+        # for t in trs.items():
+        #     ip = t('td').eq(0)
+        h = etree.HTML(html)
+        trs = h.xpath('//table/tbody/tr')
+        for tb in trs:
+            component = tb.xpath('td[@class="ip"]/*[not(@style="display: none;" or @style="display:none;")]/text()')
+            component.insert(-1, ':')
+            print("".join(component))

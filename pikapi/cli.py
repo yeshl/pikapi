@@ -2,13 +2,10 @@ import argparse
 import asyncio
 import logging
 import sys
-
-from pyppeteer import launch
-
 import pikapi
-
 import pyppeteer
 
+from pyppeteer import launch
 from pikapi.config import batch_set_config, get_config
 
 CMD_DESCRIPTION = """pikapi command line mode
@@ -22,15 +19,12 @@ logger = logging.getLogger(pikapi.__package__)
 
 async def get_html(url):
     browser = await launch(headless=True,
-                           args=[
-                               '--no-sandbox',
-                               # '--disable-setuid-sandbox',
-                                 ])
+                           args=['--no-sandbox'])
     pages = await browser.pages()
     page = pages[0]
     # await page.setUserAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36")
     logger.debug('goto: %s' % url)
-    await page.goto(url, options={'timeout': int(30 * 1000)})
+    await page.goto(url, options={'timeout': int(10 * 1000)})
     # await page.waitForNavigation({'timeout': 1000 * 30})
     # html = await page.content()
     html = await page.title()

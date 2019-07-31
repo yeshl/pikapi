@@ -1,31 +1,11 @@
-import threading
-import asyncio
-from time import sleep
-
-
-async def hi(name, semaphore):
-    async with semaphore:
-        print('async begin...', name)
-        await asyncio.sleep(1)
-        1/0
-        print('async end...', name)
-    return name
-
-
-def callback(task):
-    print('Status:', task.result())
-
-
-def run(num):
-    try:
-        1 / 0
-
-    finally:
-        print("finally")
-
+from pyquery import PyQuery
 
 if __name__ == '__main__':
-    try:
-        run(1)
-    except Exception as e:
-        print(e)
+    with open(r'C:\Users\Administrator\Desktop\a.html', 'r') as f:
+        txt = f.read()
+        doc = PyQuery(txt)
+        trs = doc("div.table-container > table:nth-child(1) > tbody:nth-child(3) > tr")
+        for t in trs.items():
+            ip = t('td').eq(0).text()
+            port = t('td').eq(1).text()
+            print(ip, port)

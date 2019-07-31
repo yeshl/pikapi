@@ -1,15 +1,10 @@
 import logging
 import unittest
 
-
 import pikapi.database
 from pikapi.database import ProxyWebSite, create_db_tables
 from pikapi.spiders import *
 from pikapi.spiders.spider import Spider
-from pikapi.spiders.spider_by_browser import SpiderCoolProxy
-from pikapi.spiders.spider_by_cookie import Spider66ip
-from pikapi.spiders.spider_by_req import SpiderA2u, SpiderData5u, SpiderIpaddress, SpiderKuaidaili, SpiderMrhinkydink, \
-    SpiderClarketm, SpiderXici
 
 logger = logging.getLogger('pikapi.test')
 
@@ -17,7 +12,14 @@ logger = logging.getLogger('pikapi.test')
 class TestProvider(unittest.TestCase):
     def test(self):
         create_db_tables()
-        self.assert_provider(SpiderCoolProxy())
+        self.assert_provider(Spider31f())
+        # self.assert_provider(SpiderGoubanjia())
+        # self.assert_provider(SpiderFeilong())
+        # self.assert_provider(SpiderIp3366())
+        # self.assert_provider(SpiderIphai())
+        # self.assert_provider(Spider89ip())
+        # self.assert_provider(SpiderCnProxy())
+        # self.assert_provider(SpiderCoolProxy())
         # self.assert_provider(Spider66ip())
         # self.assert_provider(SpiderA2u())
         # self.assert_provider(SpiderData5u())
@@ -38,7 +40,7 @@ class TestProvider(unittest.TestCase):
         else:
             # pw.stats = exc.arg[0]
             pw.stats = exc.__class__.__name__
-            logger.debug("{} crawl error:{} {}".format(provider.name, pw.stats, exc))
+            logger.error("crawl error:%s", str(exc))
 
         pw.proxy_count = len(proxies)
         logger.debug("{} crawl proxies:{}".format(provider.name, pw.proxy_count))

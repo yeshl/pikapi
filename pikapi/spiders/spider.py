@@ -154,7 +154,9 @@ class CookieSpider(Spider):
         # except Exception as e:
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         finally:
+            logger.debug('req close  browser')
             loop.run_until_complete(self._browser.close())
+            logger.debug('req close  browser complete')
 
     def crawl(self,obj):
         self.req_cookie(self._home_url)
@@ -191,7 +193,7 @@ class BrowserSpider(Spider):
             asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
         self._semaphore = asyncio.Semaphore(5)
-        self._browser = loop.run_until_complete(launch(headless=False, handleSIGINT=False,
+        self._browser = loop.run_until_complete(launch(headless=True, handleSIGINT=False,
                                                        handleSIGTERM=False, handleSIGHUP=False,
                                                        args=['--no-sandbox']
                                                        ))
@@ -204,12 +206,15 @@ class BrowserSpider(Spider):
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         #     raise e
         finally:
+            logger.debug('close  browser')
             loop.run_until_complete(self._browser.close())
+            logger.debug('close  browser complete')
 
     def crawl(self, obj):
         exc = None
         try:
             self.crawl_by_browser()
         except Exception as e:
+            # logger.error("asyncio error:%s", str(e), exc_info=True)
             exc = e
         return self, obj, exc

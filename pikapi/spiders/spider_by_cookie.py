@@ -11,8 +11,9 @@ logger = logging.getLogger(__name__)
 class Spider66ip(CookieSpider):
     name = 'www.66ip.cn'
     # start_urls = ['http://www.66ip.cn/1.html']
-    start_urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
-                 ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
+    start_urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)]
+    # start_urls = ['http://www.66ip.cn/%s.html' % i for i in range(1, 3)] + \
+    #              ['http://www.66ip.cn/areaindex_%s/%s.html' % (i, j) for i in range(1, 35) for j in range(1, 3)]
 
     def __init__(self):
         super().__init__()

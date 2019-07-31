@@ -66,7 +66,7 @@ class Scheduler(object):
     def cron_schedule(self):
         exit_flag = False
         self.feed_providers()
-        schedule.every(15).minutes.do(self.feed_providers)
+        schedule.every(5).minutes.do(self.feed_providers)
 
         self.feed_from_db()
         schedule.every(7).minutes.do(self.feed_from_db)
