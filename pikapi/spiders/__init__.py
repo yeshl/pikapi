@@ -11,7 +11,6 @@ all_providers = [
     SpiderIp3366,
     Spider31f,
     SpiderFeilong,
-    SpiderIp3366,
     SpiderIphai,
     Spider89ip,
     SpiderCnProxy,

@@ -52,7 +52,7 @@ def crawl_ips(spider_queue, validator_queue):
     executor = ThreadPoolExecutor(max_workers=32)
     while True:
         p = spider_queue.get()
-        logger.debug("spider queue:%s", spider_queue.qsize())
+        # logger.debug("spider queue:%s", spider_queue.qsize())
         future = executor.submit(p.crawl, validator_queue)
         future.add_done_callback(crawl_callback)
 
@@ -109,9 +109,10 @@ class Scheduler(object):
         while True:
             try:
                 proxy: ProxyIP = self.validator_queue.get()
-                logger.info("validator queue:%s" % self.validator_queue.qsize())
                 if not get_config('no_validation'):
                     self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
+                else:
+                    logger.debug("no_validation :%s" % proxy.ip)
             except (KeyboardInterrupt, SystemExit):
                 break
 
