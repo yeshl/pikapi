@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 import logging
+import multiprocessing
+import os
 import sys
 import pikapi
 import pyppeteer
@@ -40,7 +42,7 @@ def main(args) -> int:
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--browser-test', '-bt', action='store_true',
                         help='test browser for pyppeteer')
-    parser.add_argument('--no-webserver', '-no-ws', action='store_true',
+    parser.add_argument('--no-webserver', '-nw', action='store_true',
                         help='Prevent starting a web server for JSON API')
     parser.add_argument('--web-port', '-wp', type=int, default=8899,
                         help='The port number for the web server')
@@ -52,7 +54,7 @@ def main(args) -> int:
                         help='Print the version of pikapi')
     parser.add_argument('--db-path', type=str, default='./pikapi.db',
                         help='The sqlite database file location')
-    parser.add_argument('--no-validation', '-no-vld', action='store_true',
+    parser.add_argument('--no-validation', '-nv', action='store_true',
                         help='Prevent starting validation)')
 
     parsed_args = parser.parse_args(args)
@@ -97,4 +99,4 @@ def handle_special_flags(args: dict):
 
 
 def app_main():
-    sys.exit(main(sys.argv[1:]))
+   sys.exit(main(sys.argv[1:]))

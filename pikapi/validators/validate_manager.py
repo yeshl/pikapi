@@ -41,7 +41,10 @@ class ValidateManager(object):
         self.save()
 
     def save(self):
-        logger.debug(self._proxy)
+        if self._proxy.http_weight + self._proxy.https_weight <= 0:
+            logger.debug(self._proxy)
+        else:
+            logger.info(self._proxy)
         self._proxy.merge()
 
     @classmethod

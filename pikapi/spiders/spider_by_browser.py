@@ -59,3 +59,18 @@ class SpiderGoubanjia(BrowserSpider):
             component = tb.xpath('td[@class="ip"]/*[not(@style="display: none;" or @style="display:none;")]/text()')
             component.insert(-1, ':')
             print("".join(component))
+
+
+class _SpiderProxydb(BrowserSpider):
+    #载入超时
+    name = 'proxydb.net'
+    start_urls = ["http://proxydb.net/?protocol=http&protocol=https"]
+
+    def parse(self, html):
+        doc = PyQuery(html)
+        trs = doc('.table > tbody:nth-child(2) > tr')
+        for t in trs.items():
+            ip = t('td').eq(0)
+            print(ip)
+            # if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
+            #     self._proxies.append((ip, port))

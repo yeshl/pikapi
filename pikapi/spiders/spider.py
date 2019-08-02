@@ -79,7 +79,7 @@ class Spider(object):
     #     self.parse(resp.text)
     #     resp.close()
 
-    def crawl(self, obj):
+    def crawl(self, obj=None):
         exc = None
         self._session = requests.session()
         try:
@@ -154,11 +154,11 @@ class CookieSpider(Spider):
         # except Exception as e:
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         finally:
-            logger.debug('req close  browser')
+            logger.debug('req close chromium')
             loop.run_until_complete(self._browser.close())
-            logger.debug('req close  browser complete')
+            logger.debug('req close chromium complete')
 
-    def crawl(self,obj):
+    def crawl(self, obj=None):
         self.req_cookie(self._home_url)
         return super().crawl(obj)
 
@@ -170,7 +170,6 @@ class BrowserSpider(Spider):
         super().__init__()
         self._browser = None
         self._req_timeout = 45
-
 
     async def browse(self, url):
         async with self._semaphore:
@@ -206,11 +205,11 @@ class BrowserSpider(Spider):
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         #     raise e
         finally:
-            logger.debug('close  browser')
+            logger.debug('close chromium')
             loop.run_until_complete(self._browser.close())
-            logger.debug('close  browser complete')
+            logger.debug('close chromium complete')
 
-    def crawl(self, obj):
+    def crawl(self, obj=None):
         exc = None
         try:
             self.crawl_by_browser()

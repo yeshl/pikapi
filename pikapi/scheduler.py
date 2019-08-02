@@ -1,3 +1,5 @@
+import multiprocessing
+import sys
 import time
 import schedule
 
@@ -27,17 +29,30 @@ def crawl_callback(future):
         logger.debug("{} crawl error:{}".format(provider.name, exc))
 
     pw.proxy_count = len(proxies)
-    logger.debug("{} crawl proxies:{}".format(provider.name, pw.proxy_count))
+    logger.info("{} crawl proxies:{}".format(provider.name, pw.proxy_count))
     for p in proxies:
         validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
     pw.merge()
 
 
 def crawl_ips(spider_queue, validator_queue):
+    # if sys.platform.startswith('linux'):
+    pn = multiprocessing.current_process().name
+    if 'MainProcess' != pn and len(pn.split('-')) > 1:
+        for h in logger.parent.handlers:
+            if type(h) == logging.handlers.RotatingFileHandler:
+                logfile = '{}_{}.log'.format(h.baseFilename.rstrip('.log'), pn.split('-')[1])
+                _fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=h.maxBytes,
+                                                           backupCount=h.backupCount, encoding=h.encoding)
+                _fh.setLevel(h.level)
+                _fh.setFormatter(h.formatter)
+                logger.parent.removeHandler(h)
+                logger.parent.addHandler(_fh)
+                logger.debug("change new logfile %s" % logfile)
     executor = ThreadPoolExecutor(max_workers=32)
     while True:
         p = spider_queue.get()
-        logger.debug("spider ready:%s", p)
+        logger.debug("spider queue:%s", spider_queue.qsize())
         future = executor.submit(p.crawl, validator_queue)
         future.add_done_callback(crawl_callback)
 
@@ -47,7 +62,7 @@ class Scheduler(object):
     validator_queue = Queue()
 
     def __init__(self):
-        self.worker_process = None
+        self.crawl_process = None
         self.validator_thread = None
         self.cron_thread = None
         self.validator_pool = ThreadPoolExecutor(max_workers=128)
@@ -66,7 +81,7 @@ class Scheduler(object):
     def cron_schedule(self):
         exit_flag = False
         self.feed_providers()
-        schedule.every(5).minutes.do(self.feed_providers)
+        schedule.every(8).minutes.do(self.feed_providers)
 
         self.feed_from_db()
         schedule.every(7).minutes.do(self.feed_from_db)
@@ -94,7 +109,9 @@ class Scheduler(object):
         while True:
             try:
                 proxy: ProxyIP = self.validator_queue.get()
-                self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
+                logger.info("validator queue:%s" % self.validator_queue.qsize())
+                if not get_config('no_validation'):
+                    self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
             except (KeyboardInterrupt, SystemExit):
                 break
 
@@ -104,32 +121,32 @@ class Scheduler(object):
         and validator threads for checking whether the fetched proxies are able to use.
         """
         logger.info('Scheduler starts...')
-        self.worker_process = Process(target=crawl_ips, args=(self.spider_queue, self.validator_queue))
+        self.crawl_process = Process(target=crawl_ips, args=(self.spider_queue, self.validator_queue))
         self.validator_thread = Thread(target=self.validate_ips)
         self.cron_thread = Thread(target=self.cron_schedule)
 
-        self.worker_process.daemon = True
+        self.crawl_process.daemon = True
         self.validator_thread.daemon = True
         self.cron_thread.daemon = True
 
         self.cron_thread.start()
-        self.worker_process.start()
-        logger.info('spider_process started')
-        if not get_config('no_validation'):
-            self.validator_thread.start()
-            logger.info('validator_thread started')
+        self.crawl_process.start()
+        logger.info('crawl_process started')
+
+        self.validator_thread.start()
+        logger.info('validator_thread started')
 
     def join(self):
-        while (self.worker_process and self.worker_process.is_alive()) or (
+        while (self.crawl_process and self.crawl_process.is_alive()) or (
                 self.validator_thread and self.validator_thread.is_alive()):
             try:
-                self.worker_process.join()
+                self.crawl_process.join()
                 self.validator_thread.join()
             except (KeyboardInterrupt, SystemExit):
                 break
 
     def stop(self):
         self.spider_queue.close()
-        self.worker_process.terminate()
+        self.crawl_process.terminate()
         # self.validator_thread.terminate() # TODO: 'terminate' the thread using a flag
         self.validator_pool.shutdown(wait=False)

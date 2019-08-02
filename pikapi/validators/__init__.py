@@ -7,7 +7,7 @@ from .ysl_validator import YslValidator
 all_validators = [
     BaiduValidator,
     SohuValidator,
-    # IpifyValidator,
+    IpifyValidator,
     # IcanhazipValidator,
-    YslValidator
+    # YslValidator
 ]
