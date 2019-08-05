@@ -1,15 +1,29 @@
-import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s-[line:%(lineno)d]%(levelname)5s: %(message)s')
-logger = logging.getLogger()
-logger.setLevel(logging.FATAL)
+import queue
+import time
+from concurrent.futures import ThreadPoolExecutor, Future
+from multiprocessing import Queue
 
-if __name__ == '__main__':
-    logger.debug("调试级:%s", '参数1')
-    logger.info("信息")
-    logger.warning("警告")
-    try:
-        1/0
-    except Exception as e:
-        logger.error("错误%s", e, exc_info=True)
-    logger.critical("严重")
-    logger.fatal("致命")
+
+def f(i):
+    time.sleep(10)
+    print(i)
+
+
+def tt():
+    pool = BoundedThreadPoolExecutor(2)
+    for i in range(1, 1000):
+        print('提交任务%d' % i)
+        pool.submit(f, (1))
+    while True:
+        time.sleep(1)
+        print('main')
+
+
+class BoundedThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, max_workers=None, thread_name_prefix=''):
+        super().__init__(max_workers,thread_name_prefix)
+        self._work_queue = queue.Queue(max_workers)
+
+
+if __name__ == "__main__":
+    tt()

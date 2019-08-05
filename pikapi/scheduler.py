@@ -1,4 +1,5 @@
 import multiprocessing
+import queue
 import sys
 import time
 import schedule
@@ -7,8 +8,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from multiprocessing import Queue, Process
 from threading import Thread
-
-from pyppeteer import launch
 
 from pikapi.config import get_config
 from pikapi.database import ProxyIP, ProxyWebSite
@@ -49,23 +48,22 @@ def crawl_ips(spider_queue, validator_queue):
                 logger.parent.removeHandler(h)
                 logger.parent.addHandler(_fh)
                 logger.debug("change new logfile %s" % logfile)
-    executor = ThreadPoolExecutor(max_workers=32)
+    executor = BoundedThreadPoolExecutor(max_workers=32)
     while True:
         p = spider_queue.get()
-        # logger.debug("spider queue:%s", spider_queue.qsize())
         future = executor.submit(p.crawl, validator_queue)
         future.add_done_callback(crawl_callback)
 
 
 class Scheduler(object):
-    spider_queue = Queue()
-    validator_queue = Queue()
+    spider_queue = Queue(32)
+    validator_queue = Queue(512)
 
     def __init__(self):
         self.crawl_process = None
         self.validator_thread = None
         self.cron_thread = None
-        self.validator_pool = ThreadPoolExecutor(max_workers=128)
+        self.validator_pool = BoundedThreadPoolExecutor(max_workers=128)
 
     def feed_from_db(self):
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
@@ -81,10 +79,10 @@ class Scheduler(object):
     def cron_schedule(self):
         exit_flag = False
         self.feed_providers()
-        schedule.every(8).minutes.do(self.feed_providers)
+        schedule.every(15).minutes.do(self.feed_providers)
 
         self.feed_from_db()
-        schedule.every(7).minutes.do(self.feed_from_db)
+        schedule.every(10).minutes.do(self.feed_from_db)
 
         logger.info('Start python scheduler')
         while not exit_flag:
@@ -138,16 +136,26 @@ class Scheduler(object):
         logger.info('validator_thread started')
 
     def join(self):
-        while (self.crawl_process and self.crawl_process.is_alive()) or (
-                self.validator_thread and self.validator_thread.is_alive()):
-            try:
-                self.crawl_process.join()
-                self.validator_thread.join()
-            except (KeyboardInterrupt, SystemExit):
-                break
+        # while (self.crawl_process and self.crawl_process.is_alive()) or (
+        #         self.validator_thread and self.validator_thread.is_alive()):
+        #     try:
+        #         self.crawl_process.join()
+        #         self.validator_thread.join()
+        #     except (KeyboardInterrupt, SystemExit):
+        #         break
+        while True:
+            logger.debug('spider_queue:{}, validator_queue:{}'
+                         .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
+            time.sleep(4)
 
     def stop(self):
         self.spider_queue.close()
         self.crawl_process.terminate()
         # self.validator_thread.terminate() # TODO: 'terminate' the thread using a flag
         self.validator_pool.shutdown(wait=False)
+
+
+class BoundedThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, max_workers=None, thread_name_prefix=''):
+        super().__init__(max_workers,thread_name_prefix)
+        self._work_queue = queue.Queue(max_workers)
