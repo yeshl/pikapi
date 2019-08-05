@@ -1,34 +1,27 @@
-import logging
+#!/usr/bin/env python
+# -*- coding:utf-8 _*-
+"""
+@author:Administrator
+@time: 2019/08/{DAY}
+"""
 import unittest
 
 from pikapi.spiders import *
-from pikapi.spiders.spider import Spider
-
-logger = logging.getLogger('pikapi.test')
 
 
+class TestProvider(unittest.TestCase):
+    def test(self):
+        self.assert_provider(SpiderGoubanjia())
+        # for p in all_providers:
+        #     self.assert_provider(p())
 
-
-
-def add_test(provider):
-    name = f"Test{provider.__name__}"
-
-    def test_method(p):
-        def fn(self):
-            sp, obj, exc = p.crawl()
-            proxies = list(set(p.proxies))
-            self.assertTrue(exc is None, p.name + " : " + exc.__class__.__name__)
-            self.assertGreater(len(proxies), 0, p.name)
-            logger.debug("{} crawl proxies:{}".format(p.name, len(proxies)))
-        return fn
-
-    d = {'test_fun': test_method(provider())}
-    cls = type(name, (unittest.TestCase,), d)
-    globals()[name] = cls
-
-
-if __name__ == '__main__':
-    for p in all_providers:
-        add_test(p)
-    unittest.main()
-
+    def assert_provider(self, p: Spider):
+        provider, obj, exc = p.crawl(None)
+        proxies = list(set(provider.proxies))
+        self.assertTrue(exc is None, provider.name + " : " + exc.__class__.__name__)
+        self.assertGreater(len(proxies), 0, provider.name)
+        logger.debug("{} crawl proxies:{}".format(provider.name, len(proxies)))
+        for i, v in enumerate(proxies):
+            logger.debug("[{0}] {1}:{2}".format(i, v[0], v[1]))
+            if i > 2:
+                break

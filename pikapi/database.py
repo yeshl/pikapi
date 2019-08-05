@@ -85,10 +85,11 @@ class ProxyIP(BaseModel):
     city = CharField(null=True, max_length=32)
 
     def __str__(self):
-        return 'ProxyIP{{ip: {}, port: {}, ' \
-               ' http_anonymous: {}, https_anonymous: {}, http_weight: {}, https_weight: {}, country: {}}}' \
-            .format(self.ip, self.port,
-                    self.http_anonymous, self.https_anonymous, self.http_weight, self.https_weight, self.country)
+        return '{}:{}'.format(self.ip, self.port)
+        # return 'ProxyIP{{ip: {}, port: {}, ' \
+        #        ' http_anonymous: {}, https_anonymous: {}, http_weight: {}, https_weight: {}, country: {}}}' \
+        #     .format(self.ip, self.port,
+        #             self.http_anonymous, self.https_anonymous, self.http_weight, self.https_weight, self.country)
 
     def __repr__(self):
         return self.__str__()

@@ -66,8 +66,8 @@ class ResquestHandler(BaseHTTPRequestHandler):
                 # <td nowrap='nowrap'></td>
                 arr.append(
                     "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td>"
-                    "<td>{6}</td><td>{7}</td><td nowrap='nowrap'>{8}</td><td>{9}</td><td>{10}</td></tr>".format(
-                        i + 1, '%s:%s' % (p.ip, p.port),
+                    "<td>{6}</td><td>{7}</td><td>{8}</td><td nowrap='nowrap'>{9}</td><td>{10}</td><td>{11}</td></tr>".format(
+                        i + 1, '%s:%s' % (p.ip, p.port), p.latency,
                         p.http_pass_proxy_ip, p.https_pass_proxy_ip,
                         p.http_anonymous, p.https_anonymous,
                         p.http_weight, p.https_weight,
@@ -84,7 +84,7 @@ class ResquestHandler(BaseHTTPRequestHandler):
                 <tbody>{1}
                 </tbody></table></br>
                 <table width="900" style="margin-left:20px; border-collapse:collapse; padding-left:10px"  border="1"  cellPadding=3 bordercolor="#BBBBBB">
-                <thead bgcolor="#DDDDDD"><tr><th>row</th><th>proxy</th>
+                <thead bgcolor="#DDDDDD"><tr><th>row</th><th>proxy</th><th>elapsed</th>
                   <th>http_pass_ip</th><th>https_pass_ip</th>
                   <th>http_ano</th><th>https_ano</th>
                   <th>http_weight</th><th>https_weight</th>

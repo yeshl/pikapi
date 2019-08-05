@@ -1,29 +1,11 @@
-import queue
-import time
-from concurrent.futures import ThreadPoolExecutor, Future
-from multiprocessing import Queue
-
-
-def f(i):
-    time.sleep(10)
-    print(i)
-
-
-def tt():
-    pool = BoundedThreadPoolExecutor(2)
-    for i in range(1, 1000):
-        print('提交任务%d' % i)
-        pool.submit(f, (1))
-    while True:
-        time.sleep(1)
-        print('main')
-
-
-class BoundedThreadPoolExecutor(ThreadPoolExecutor):
-    def __init__(self, max_workers=None, thread_name_prefix=''):
-        super().__init__(max_workers,thread_name_prefix)
-        self._work_queue = queue.Queue(max_workers)
+def parse(s, *args):
+    print(s)
+    for i in args:
+        print(i)
 
 
 if __name__ == "__main__":
-    tt()
+    ss = ['1', '8', '3.', '6', '.', '18', '3.', '35', '8010']
+    ip = ''.join(ss[0:-1])
+    port = ss[-1]
+    print(ip,port)

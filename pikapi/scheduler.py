@@ -63,7 +63,7 @@ class Scheduler(object):
         self.crawl_process = None
         self.validator_thread = None
         self.cron_thread = None
-        self.validator_pool = BoundedThreadPoolExecutor(max_workers=128)
+        self.validator_pool = BoundedThreadPoolExecutor(max_workers=256)
 
     def feed_from_db(self):
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
@@ -72,14 +72,18 @@ class Scheduler(object):
             # logger.debug('from database for validation: {}:{}'.format(p.ip, p.port))
 
     def feed_providers(self):
-        logger.debug('feed {} spiders...'.format(len(all_providers)))
-        for provider in all_providers:
-            self.spider_queue.put(provider())
+        if self.validator_queue.qsize() > 100:
+            logger.warning('too many task in validator_queue {} , skip schedule crawl !!'
+                           .format(self.validator_queue.qsize()))
+        else:
+            logger.debug('feed {} spiders...'.format(len(all_providers)))
+            for provider in all_providers:
+                self.spider_queue.put(provider())
 
     def cron_schedule(self):
         exit_flag = False
         self.feed_providers()
-        schedule.every(15).minutes.do(self.feed_providers)
+        schedule.every(10).minutes.do(self.feed_providers)
 
         self.feed_from_db()
         schedule.every(10).minutes.do(self.feed_from_db)
@@ -88,7 +92,7 @@ class Scheduler(object):
         while not exit_flag:
             try:
                 schedule.run_pending()
-                time.sleep(7)
+                time.sleep(4)
             except (KeyboardInterrupt, InterruptedError):
                 logger.info('Stopping python scheduler')
                 break
@@ -99,18 +103,19 @@ class Scheduler(object):
             try:
                 v.validate()
             except (KeyboardInterrupt, SystemExit):
-                logger.info('KeyboardInterrupt terminates validate_proxy_ip: ' + p.ip)
+                logger.info('KeyboardInterrupt terminates validate_proxy_ip()' )
         else:
-            logger.info('skip validate {}  '.format(p.ip))
+            logger.info('skip validate {}  '.format(p))
 
     def validate_ips(self):
         while True:
             try:
                 proxy: ProxyIP = self.validator_queue.get()
-                if not get_config('no_validation'):
+                if not get_config('no_validate'):
+                    # logger.debug("submit validate :%s" % proxy.ip)
                     self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
                 else:
-                    logger.debug("no_validation :%s" % proxy.ip)
+                    logger.debug("no_validate :%s" % proxy.ip)
             except (KeyboardInterrupt, SystemExit):
                 break
 
@@ -144,8 +149,12 @@ class Scheduler(object):
         #     except (KeyboardInterrupt, SystemExit):
         #         break
         while True:
-            logger.debug('spider_queue:{}, validator_queue:{}'
-                         .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
+            if self.validator_queue.qsize() > 10:
+                logger.warning('spider_queue:{}, validator_queue:{}'
+                               .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
+            else:
+                logger.info('spider_queue:{}, validator_queue:{}'
+                               .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
             time.sleep(4)
 
     def stop(self):
@@ -157,5 +166,5 @@ class Scheduler(object):
 
 class BoundedThreadPoolExecutor(ThreadPoolExecutor):
     def __init__(self, max_workers=None, thread_name_prefix=''):
-        super().__init__(max_workers,thread_name_prefix)
+        super().__init__(max_workers, thread_name_prefix)
         self._work_queue = queue.Queue(max_workers)

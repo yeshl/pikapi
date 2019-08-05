@@ -30,6 +30,7 @@ class Spider66ip(CookieSpider):
             if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
                 self._proxies.append((ip, port))
 
+
 class Spider66ipcn(CookieSpider):
     name = '66ip.cn'
     start_urls = [

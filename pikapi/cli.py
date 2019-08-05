@@ -54,15 +54,15 @@ def main(args) -> int:
                         help='Print the version of pikapi')
     parser.add_argument('--db-path', type=str, default='./pikapi.db',
                         help='The sqlite database file location')
-    parser.add_argument('--no-validation', '-nv', action='store_true',
+    parser.add_argument('--no-validate', '-nv', action='store_true',
                         help='Prevent starting validation)')
 
     parsed_args = parser.parse_args(args)
     parsed_args_dict = vars(parsed_args)
     batch_set_config(**vars(parsed_args))
-    logger.debug('chromium version %s', pyppeteer.chromium_downloader.REVISION)
-    logger.debug('local path %s', pyppeteer.chromium_downloader.chromiumExecutable)
-    logger.debug('download url %s', pyppeteer.chromium_downloader.downloadURLs)
+    logger.info('chromium version %s', pyppeteer.chromium_downloader.REVISION)
+    logger.info('local path %s', pyppeteer.chromium_downloader.chromiumExecutable)
+    logger.info('download url %s', pyppeteer.chromium_downloader.downloadURLs)
     handle_special_flags(parsed_args_dict)
 
     from pikapi.database import create_db_tables

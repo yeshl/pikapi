@@ -13,6 +13,7 @@ IP_INFO_AIP2 = 'http://ip.taobao.com/service/getIpInfo.php?ip={}'
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
+
 class BaseValidator(object):
     def __init__(self, proxy_ip: ProxyIP, eip: str):
         self._proxy_ip = proxy_ip
@@ -84,7 +85,7 @@ class BaseValidator(object):
     def validate_http(self):
         try:
             # logger.debug("{0} -x {1}".format(self._http_check_url, self._proxy['http']))
-            r = requests.get(self._http_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=10)
+            r = requests.get(self._http_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
             if r.ok:
                 ip = self.parse_ip(r.text)
                 if ip is not None and len(ip) > 0:
@@ -99,7 +100,7 @@ class BaseValidator(object):
     def validate_https(self):
         try:
             # logger.debug("{0} -x {1}".format(self._https_check_url, self._proxy['https']))
-            r = requests.get(self._https_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=10)
+            r = requests.get(self._https_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
             if r.ok:
                 ip = self.parse_ip(r.text)
                 if ip is not None and len(ip) > 0:
@@ -116,10 +117,8 @@ class BaseValidator(object):
 
     def validate(self, times: int = 2):
         for i in range(times):
-            time.sleep(0.5)
-            self.validate_http()
-            time.sleep(0.5)
             self.validate_https()
+            self.validate_http()
 
         if self._proxy_ip.country is None:
             self.ip_info()

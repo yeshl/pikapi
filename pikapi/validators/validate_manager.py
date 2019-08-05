@@ -1,4 +1,6 @@
 import json
+import time
+
 import requests
 from datetime import datetime, timedelta
 
@@ -32,26 +34,29 @@ class ValidateManager(object):
         self._proxy = proxy
 
     def validate(self):
+        c0 = time.perf_counter()
+        logger.debug("validate BEGIN {}".format(self._proxy))
         for vs in all_validators:
             validator = vs(self._proxy, get_current_ip())
             validator.validate(1)
             if self._proxy.http_weight+self._proxy.https_weight <= 0:
                 break
-
+        self._proxy.latency = round(time.perf_counter() - c0, 2)
+        logger.info("validate END {} weight:{} elapsed:{}s".format(self._proxy,
+                                             self._proxy.http_weight + self._proxy.https_weight,
+                                             self._proxy.latency))
         self.save()
 
     def save(self):
-        if self._proxy.http_weight + self._proxy.https_weight <= 0:
-            logger.debug(self._proxy)
-        else:
-            logger.info(self._proxy)
         self._proxy.merge()
 
     @classmethod
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:
         if proxy_ip.id is None:
             for p in ProxyIP.select().where(ProxyIP.ip == proxy_ip.ip):
+                if p.updated_at > datetime.now() - timedelta(minutes=12):
+                    return False
                 if p.http_weight+proxy_ip.https_weight <= 0 \
-                        and datetime.now() - p.updated_at < timedelta(hours=24*p.failed_validate):
+                        and p.updated_at > datetime.now() - timedelta(hours=24*p.failed_validate):
                     return False
         return True

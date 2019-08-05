@@ -13,9 +13,10 @@ class SpiderCoolProxy(BrowserSpider):
     name = 'www.cool-proxy.net'
     start_urls = [
             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1',
-            # 'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
-            # 'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:3'
+             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
+            'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:3'
         ]
+    parse_args = ('#main > table > tbody > tr', 'td', 0, 1)
 
     def __init__(self):
         super().__init__()
@@ -33,15 +34,6 @@ class SpiderCoolProxy(BrowserSpider):
             await page.close()
             return html
 
-    def parse(self, html):
-        doc = PyQuery(html)
-        info = doc("#main > table > tbody > tr")
-        for tr in info.items():
-            ip = tr("td:first-child").text()
-            port = tr("td").eq(1).text()
-            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
-                self._proxies.append((ip, port))
-
 
 class SpiderGoubanjia(BrowserSpider):
     name = 'www.goubanjia.com'
@@ -56,9 +48,10 @@ class SpiderGoubanjia(BrowserSpider):
         h = etree.HTML(html)
         trs = h.xpath('//table/tbody/tr')
         for tb in trs:
-            component = tb.xpath('td[@class="ip"]/*[not(@style="display: none;" or @style="display:none;")]/text()')
-            component.insert(-1, ':')
-            print("".join(component))
+            ss = tb.xpath('td[@class="ip"]/*[not(@style="display: none;" or @style="display:none;")]/text()')
+            ip = ''.join(ss[0:-1])
+            port = ss[-1]
+            self._proxies.append((ip, port))
 
 
 class _SpiderProxydb(BrowserSpider):

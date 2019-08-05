@@ -2,10 +2,12 @@
 import asyncio
 import logging
 import random
+import re
 import threading
 import time
 import requests
 from pyppeteer import launch
+from pyquery import PyQuery
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,7 @@ class Spider(object):
     name = 'Spider'
     domain = 'yeshl.com'
     start_urls = []
+    parse_args = ('table > tbody > tr', 'td', 0, 1)
 
     def __init__(self):
         # self._ua = UserAgent().random
@@ -69,12 +72,22 @@ class Spider(object):
     def proxies(self):
         return self._proxies
 
-    def parse(self, resp):
-        logger.debug(resp)
-        raise NotImplementedError
+    def parse(self, html):
+        doc = PyQuery(html)
+        trs = doc(self.parse_args[0])
+        for t in trs.items():
+            ip = t(self.parse_args[1]).eq(self.parse_args[2]).text()
+            if self.parse_args[3] > 0:
+                port = t(self.parse_args[1]).eq(self.parse_args[3]).text()
+            else:
+                ips = ip.split(':')
+                ip = ips[0]
+                port = ips[1]
+            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
+                self._proxies.append((ip, port))
 
     # def reqs(self, url):
-    #     resp = requests.get(url, headers=self._headers, timeout=self._req_timeout, verify=False)
+    #     resp = requests.get(url, headers=self._headers, timeout=(10,self._req_timeout), verify=False)
     #     resp.encoding = self._encoding
     #     self.parse(resp.text)
     #     resp.close()
@@ -85,11 +98,11 @@ class Spider(object):
         try:
             for url in self.start_urls:
                 logger.debug('requests {}'.format(url))
-                resp = self._session.get(url, headers=self._headers, timeout=self._req_timeout, verify=False)
+                resp = self._session.get(url, headers=self._headers, timeout=(10, self._req_timeout), verify=False)
                 resp.encoding = self._encoding
                 if resp.status_code == 200:
                     self.parse(resp.text)
-                    logger.debug('{} crawl proxies: {}'.format(url, len(self._proxies)))
+                    logger.info('{} crawl proxies: {}'.format(url, len(self._proxies)))
                 else:
                     logger.error("response code：{} from {}".format(resp.status_code,url))
                 time.sleep(self._sleep)
@@ -135,7 +148,7 @@ class CookieSpider(Spider):
 
     def callback(self, future):
         header = future.result()
-        logger.info('browser headers(cookies) :%s', header)
+        logger.debug('browser headers(cookies) :%s', header)
         self._headers = header
 
     def req_cookie(self, home_url):
@@ -154,9 +167,9 @@ class CookieSpider(Spider):
         # except Exception as e:
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         finally:
-            logger.debug('req close chromium')
+            logger.info('req close chromium')
             loop.run_until_complete(self._browser.close())
-            logger.debug('req close chromium complete')
+            logger.info('req close chromium complete')
 
     def crawl(self, obj=None):
         self.req_cookie(self._home_url)
@@ -205,9 +218,9 @@ class BrowserSpider(Spider):
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         #     raise e
         finally:
-            logger.debug('close chromium')
+            logger.info('close chromium')
             loop.run_until_complete(self._browser.close())
-            logger.debug('close chromium complete')
+            logger.info('close chromium complete')
 
     def crawl(self, obj=None):
         exc = None
