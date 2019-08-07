@@ -11,7 +11,7 @@ from pikapi.spiders import *
 
 class TestProvider(unittest.TestCase):
     def test(self):
-        self.assert_provider(SpiderGoubanjia())
+        self.assert_provider(SpiderTxt())
         # for p in all_providers:
         #     self.assert_provider(p())
 
@@ -20,8 +20,8 @@ class TestProvider(unittest.TestCase):
         proxies = list(set(provider.proxies))
         self.assertTrue(exc is None, provider.name + " : " + exc.__class__.__name__)
         self.assertGreater(len(proxies), 0, provider.name)
-        logger.debug("{} crawl proxies:{}".format(provider.name, len(proxies)))
+        logger.info("{} crawl proxies:{}".format(provider.name, len(proxies)))
         for i, v in enumerate(proxies):
-            logger.debug("[{0}] {1}:{2}".format(i, v[0], v[1]))
+            logger.info("[{0}] {1}:{2}".format(i, v[0], v[1]))
             if i > 2:
                 break

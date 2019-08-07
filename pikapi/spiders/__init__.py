@@ -8,7 +8,7 @@ all_providers = [
     SpiderJiangxianli,
     Spider66ipcn,
     SpiderProxylistplus,
-    SpiderProxy_listen,
+    SpiderProxyListen,
     SpiderIp3366,
     Spider31f,
     SpiderFeilong,

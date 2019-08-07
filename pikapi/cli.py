@@ -1,13 +1,11 @@
 import argparse
 import asyncio
 import logging
-import multiprocessing
-import os
 import sys
-import pikapi
-import pyppeteer
 
-from pyppeteer import launch
+from pyppeteer import launch, chromium_downloader
+
+import pikapi
 from pikapi.config import batch_set_config, get_config
 
 CMD_DESCRIPTION = """pikapi command line mode
@@ -25,15 +23,15 @@ async def get_html(url):
     pages = await browser.pages()
     page = pages[0]
     # await page.setUserAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36")
-    logger.debug('goto: %s' % url)
+    logger.info('goto: %s' % url)
     await page.goto(url, options={'timeout': int(10 * 1000)})
     # await page.waitForNavigation({'timeout': 1000 * 30})
     # html = await page.content()
     html = await page.title()
     await page.close()
-    logger.debug('close chrome now...')
+    logger.info('close chrome now...')
     await browser.close()
-    logger.debug('chrome closed')
+    logger.info('chrome closed')
     return html
 
 
@@ -60,9 +58,10 @@ def main(args) -> int:
     parsed_args = parser.parse_args(args)
     parsed_args_dict = vars(parsed_args)
     batch_set_config(**vars(parsed_args))
-    logger.info('chromium version %s', pyppeteer.chromium_downloader.REVISION)
-    logger.info('local path %s', pyppeteer.chromium_downloader.chromiumExecutable)
-    logger.info('download url %s', pyppeteer.chromium_downloader.downloadURLs)
+
+    logger.info('chromium version %s', chromium_downloader.REVISION)
+    logger.info('local path %s', chromium_downloader.chromiumExecutable)
+    logger.info('download url %s', chromium_downloader.downloadURLs)
     handle_special_flags(parsed_args_dict)
 
     from pikapi.database import create_db_tables
@@ -94,9 +93,9 @@ def handle_special_flags(args: dict):
         sys.exit(0)
     if args['browser_test']:
         text = asyncio.get_event_loop().run_until_complete(get_html("https://www.baidu.com"))
-        logger.debug(text)
+        logger.info(text)
         sys.exit(0)
 
 
 def app_main():
-   sys.exit(main(sys.argv[1:]))
+    sys.exit(main(sys.argv[1:]))

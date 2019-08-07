@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpiderTxt(Spider):
-    name = 'txt.com'
+    name = 'txt'
     start_urls = [
             "http://www.proxylists.net/http_highanon.txt",
             "http://ab57.ru/downloads/proxylist.txt",
@@ -31,6 +31,7 @@ class SpiderTxt(Spider):
             ip, port = it.split(':')
             if ip and port:
                 self._proxies.append((ip, port))
+
 
 class SpiderData5u(Spider):
     name = 'www.data5u.com'
@@ -105,12 +106,12 @@ class SpiderIp3366(Spider):
                   for i in range(1, 7) for j in range(1, 7)]
 
 
-class SpiderProxy_listen(Spider):
+class SpiderProxyListen(Spider):
     name = 'www.proxy-listen.de'
     start_urls = ['https://www.proxy-listen.de/Proxy/Proxyliste.html']
     parse_args = ('table.proxyList > tr','td', 0, 1)
 
-    def crawl(self, obj):
+    def crawl(self, obj=None):
         exc = None
         self._session = requests.session()
         try:
@@ -146,6 +147,7 @@ class _SpiderMimvp(Spider):
     name = 'proxy.mimvp.com'
     start_urls = ['https://proxy.mimvp.com/free.php?proxy=in_hp',
                   'https://proxy.mimvp.com/free.php?proxy=in_tp']
+    crack_url =None
 
     def img2code(self, imgurl):
         ir = requests.get(imgurl, headers=self._headers, timeout=10)

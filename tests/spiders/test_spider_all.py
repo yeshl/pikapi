@@ -1,13 +1,8 @@
-import logging
 import unittest
 
 from pikapi.spiders import *
-from pikapi.spiders.spider import Spider
 
 logger = logging.getLogger('pikapi.test')
-
-
-
 
 
 def add_test(provider):
@@ -19,7 +14,7 @@ def add_test(provider):
             proxies = list(set(p.proxies))
             self.assertTrue(exc is None, p.name + " : " + exc.__class__.__name__)
             self.assertGreater(len(proxies), 0, p.name)
-            logger.debug("{} crawl proxies:{}".format(p.name, len(proxies)))
+            logger.info("{} crawl proxies:{}".format(p.name, len(proxies)))
         return fn
 
     d = {'test_fun': test_method(provider())}

@@ -98,7 +98,14 @@ class Spider(object):
         try:
             for url in self.start_urls:
                 logger.debug('requests {}'.format(url))
-                resp = self._session.get(url, headers=self._headers, timeout=(10, self._req_timeout), verify=False)
+                try:
+                    resp = self._session.get(url, headers=self._headers, timeout=(15, self._req_timeout), verify=False)
+                except Exception as e1:
+                    if self.name == 'txt':
+                        logger.error("{} :{}".format(url, e1))
+                        continue
+                    else:
+                        raise e1
                 resp.encoding = self._encoding
                 if resp.status_code == 200:
                     self.parse(resp.text)
@@ -123,7 +130,7 @@ class CookieSpider(Spider):
     def __init__(self):
         super().__init__()
         self._browser = None
-        # self._home_url
+        self._home_url = None
         self._req_timeout = 30
 
     async def browse(self, url):

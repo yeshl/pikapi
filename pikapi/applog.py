@@ -2,7 +2,6 @@
 
 import logging.handlers
 import multiprocessing
-import os
 import sys
 # import concurrent_log_handler
 
@@ -39,4 +38,4 @@ logger.setLevel(logging.INFO)
 logger.addHandler(_ch)
 logger.addHandler(_fh)
 
-logger.debug('applog.py loaded logfile:%s' % logfile)
+logger.info('applog.py loaded logfile:%s' % logfile)

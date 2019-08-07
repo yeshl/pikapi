@@ -1,3 +1,4 @@
+import subprocess
 from datetime import datetime, timedelta
 
 from pikapi.database import ProxyIP
@@ -34,8 +35,7 @@ class Squid:
 
         with open(self.SQUID_CONF, "w") as f:
             f.writelines(squid_conf)
-        # os.system("squid -k reconfigure")
-        # subprocess.call([squid, '-k', 'reconfigure'], shell=False)
+        subprocess.call(['squid', '-k', 'reconfigure'], shell=False)
 
     def conf(cls):
         print(cls.HOME)
