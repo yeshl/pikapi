@@ -41,5 +41,6 @@ class Squid:
         print(cls.HOME)
 
 
+
 if __name__ == '__main__':
     print(Squid.SQUID_CONF)

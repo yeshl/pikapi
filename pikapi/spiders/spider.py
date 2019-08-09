@@ -72,6 +72,9 @@ class Spider(object):
     def proxies(self):
         return self._proxies
 
+    def setUp(self):
+        pass
+
     def parse(self, html):
         doc = PyQuery(html)
         trs = doc(self.parse_args[0])
@@ -86,13 +89,14 @@ class Spider(object):
             if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
                 self._proxies.append((ip, port))
 
-    # def reqs(self, url):
-    #     resp = requests.get(url, headers=self._headers, timeout=(10,self._req_timeout), verify=False)
-    #     resp.encoding = self._encoding
-    #     self.parse(resp.text)
-    #     resp.close()
+    def reqs(self, url):
+        resp = requests.get(url, headers=self._headers, timeout=(10,self._req_timeout), verify=False)
+        resp.encoding = self._encoding
+        resp.close()
+        return resp.text
 
     def crawl(self, obj=None):
+        self.setUp()
         exc = None
         self._session = requests.session()
         try:
@@ -158,7 +162,7 @@ class CookieSpider(Spider):
         logger.debug('browser headers(cookies) :%s', header)
         self._headers = header
 
-    def req_cookie(self, home_url):
+    def setUp(self):
         if 'MainThread' != threading.current_thread().name:
             asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
@@ -167,7 +171,7 @@ class CookieSpider(Spider):
                                                        args=['--no-sandbox']
                                                        ))
 
-        task = asyncio.ensure_future(self.browse(home_url))
+        task = asyncio.ensure_future(self.browse(self._home_url))
         task.add_done_callback(self.callback)
         try:
             asyncio.get_event_loop().run_until_complete(task)
@@ -178,9 +182,7 @@ class CookieSpider(Spider):
             loop.run_until_complete(self._browser.close())
             logger.info('req close chromium complete')
 
-    def crawl(self, obj=None):
-        self.req_cookie(self._home_url)
-        return super().crawl(obj)
+
 
 
 class BrowserSpider(Spider):
@@ -230,6 +232,7 @@ class BrowserSpider(Spider):
             logger.info('close chromium complete')
 
     def crawl(self, obj=None):
+        self.setUp()
         exc = None
         try:
             self.crawl_by_browser()

@@ -1,9 +1,9 @@
 import datetime
 import logging
-import types
 
-from peewee import CharField, DateTimeField,  FloatField, IntegerField, SqliteDatabase
+from peewee import CharField, DateTimeField, FloatField, IntegerField, SqliteDatabase
 from playhouse.signals import Model
+
 from pikapi.config import get_config
 
 _db = None
@@ -71,6 +71,7 @@ class ProxyIP(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
     latency = FloatField(default=-1)
+    google = IntegerField(default=0)
     failed_validate = IntegerField(default=0)
     http_pass_proxy_ip = CharField(null=True, max_length=16)
     https_pass_proxy_ip = CharField(null=True, max_length=16)

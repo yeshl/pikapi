@@ -1,11 +1,9 @@
 import multiprocessing
 import queue
-import sys
-import time
-import schedule
-
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from logging.handlers import RotatingFileHandler
 from multiprocessing import Queue, Process
 from threading import Thread
 
@@ -15,6 +13,43 @@ from pikapi.spiders import *
 from pikapi.validators.validate_manager import ValidateManager
 
 logger = logging.getLogger(__name__)
+
+
+class BoundedThreadPoolExecutor(ThreadPoolExecutor):
+    def __init__(self, max_workers=None, thread_name_prefix=''):
+        super().__init__(max_workers, thread_name_prefix)
+        self._work_queue = queue.Queue(max_workers)
+
+
+class TimerJob:
+    def __init__(self, interval, function, *args, **kwargs):
+        self._lock = threading.Lock()
+        self._timer = None
+        self.function = function
+        self.interval = interval
+        self.args = args
+        self.kwargs = kwargs
+        self._stopped = True
+        self.start()
+
+    def start(self, from_run=False):
+        self._lock.acquire()
+        if from_run or self._stopped:
+            self._stopped = False
+            self._timer = threading.Timer(self.interval, self._run)
+            self._timer.setDaemon(True)
+            self._timer.start()
+            self._lock.release()
+
+    def _run(self):
+        self.start(from_run=True)
+        self.function(*self.args, **self.kwargs)
+
+    def stop(self):
+        self._lock.acquire()
+        self._stopped = True
+        self._timer.cancel()
+        self._lock.release()
 
 
 def crawl_callback(future):
@@ -39,9 +74,10 @@ def crawl_ips(spider_queue, validator_queue):
     pn = multiprocessing.current_process().name
     if 'MainProcess' != pn and len(pn.split('-')) > 1:
         for h in logger.parent.handlers:
-            if type(h) == logging.handlers.RotatingFileHandler:
+
+            if type(h) == RotatingFileHandler:
                 logfile = '{}_{}.log'.format(h.baseFilename.rstrip('.log'), pn.split('-')[1])
-                _fh = logging.handlers.RotatingFileHandler(logfile, "a", maxBytes=h.maxBytes,
+                _fh = RotatingFileHandler(logfile, "a", maxBytes=h.maxBytes,
                                                            backupCount=h.backupCount, encoding=h.encoding)
                 _fh.setLevel(h.level)
                 _fh.setFormatter(h.formatter)
@@ -57,7 +93,7 @@ def crawl_ips(spider_queue, validator_queue):
 
 class Scheduler(object):
     spider_queue = Queue(32)
-    validator_queue = Queue(512)
+    validator_queue = Queue(5120)
 
     def __init__(self):
         self.crawl_process = None
@@ -67,35 +103,21 @@ class Scheduler(object):
 
     def feed_from_db(self):
         proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
+        i = 0
         for p in proxies.execute():
             self.validator_queue.put(p)
-            # logger.debug('from database for validation: {}:{}'.format(p.ip, p.port))
+            i += 1
+        logger.info('from db validate task:{}'.format(i))
 
-    def feed_providers(self):
-        if self.validator_queue.qsize() > 100:
-            logger.warning('too many task in validator_queue {} , skip schedule crawl !!'
-                           .format(self.validator_queue.qsize()))
-        else:
-            logger.debug('feed {} spiders...'.format(len(all_providers)))
-            for provider in all_providers:
-                self.spider_queue.put(provider())
+    def sche_feed(self):
+        self.feed_from_db()
+        for provider in all_providers:
+            self.spider_queue.put(provider())
+        logger.info('start spiders:{}'.format(len(all_providers)))
 
     def cron_schedule(self):
-        exit_flag = False
-        self.feed_providers()
-        schedule.every(10).minutes.do(self.feed_providers)
-
-        self.feed_from_db()
-        schedule.every(10).minutes.do(self.feed_from_db)
-
-        logger.info('Start python scheduler')
-        while not exit_flag:
-            try:
-                schedule.run_pending()
-                time.sleep(4)
-            except (KeyboardInterrupt, InterruptedError):
-                logger.info('Stopping python scheduler')
-                break
+        self.sche_feed()
+        TimerJob(60 * 15, self.sche_feed)
 
     def validate_proxy_ip(self, p: ProxyIP):
         if ValidateManager.should_validate(p):
@@ -103,7 +125,7 @@ class Scheduler(object):
             try:
                 v.validate()
             except (KeyboardInterrupt, SystemExit):
-                logger.info('KeyboardInterrupt terminates validate_proxy_ip()' )
+                logger.info('KeyboardInterrupt terminates validate_proxy_ip()')
         else:
             logger.info('skip validate {}  '.format(p))
 
@@ -154,7 +176,7 @@ class Scheduler(object):
                                .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
             else:
                 logger.info('spider_queue:{}, validator_queue:{}'
-                               .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
+                            .format(self.spider_queue.qsize(), self.validator_queue.qsize()))
             time.sleep(4)
 
     def stop(self):
@@ -162,9 +184,3 @@ class Scheduler(object):
         self.crawl_process.terminate()
         # self.validator_thread.terminate() # TODO: 'terminate' the thread using a flag
         self.validator_pool.shutdown(wait=False)
-
-
-class BoundedThreadPoolExecutor(ThreadPoolExecutor):
-    def __init__(self, max_workers=None, thread_name_prefix=''):
-        super().__init__(max_workers, thread_name_prefix)
-        self._work_queue = queue.Queue(max_workers)

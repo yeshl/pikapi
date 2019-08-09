@@ -1,4 +1,3 @@
-
 from http.server import HTTPStatus, HTTPServer, BaseHTTPRequestHandler
 from urllib import parse
 from pikapi.database import ProxyIP, ProxyWebSite
@@ -8,14 +7,14 @@ from datetime import datetime, timedelta
 import json
 
 logger = logging.getLogger(__name__)
-_valid_proxies_query = ProxyIP.select()\
-                      .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
-                      .where(ProxyIP.http_weight + ProxyIP.https_weight > 0)\
-                      # .where()
+_valid_proxies_query = ProxyIP.select() \
+    .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
+    .where(ProxyIP.http_weight + ProxyIP.https_weight > 0) \
+    # .where()
 
 
 def api_v1_proxies():
-    ps = _valid_proxies_query.order_by(ProxyIP.https_weight.desc()).limit(50)
+    ps = _valid_proxies_query.order_by(ProxyIP.google.desc(),ProxyIP.https_weight.desc()).limit(60)
     return ps
 
 
@@ -52,13 +51,12 @@ class ResquestHandler(BaseHTTPRequestHandler):
 
             arr = []
             for x in api_v1_stats():
-                arr.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'.format(x.site_name,
-                                                                                                          x.proxy_count,
-                                                                                                          x.last_fetch.strftime(
-                                                                                                              "%Y-%m-%d %H:%M:%S") if x.last_fetch else '',
-                                                                                                          x.this_fetch.strftime(
-                                                                                                              "%Y-%m-%d %H:%M:%S"),
-                                                                                                          x.stats))
+                arr.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'
+                           .format(x.site_name,
+                                   x.proxy_count,
+                                   x.last_fetch.strftime("%Y-%m-%d %H:%M:%S") if x.last_fetch else '',
+                                   x.this_fetch.strftime("%Y-%m-%d %H:%M:%S"),
+                                   x.stats))
             sites = ''.join(arr)
 
             arr.clear()
@@ -66,8 +64,9 @@ class ResquestHandler(BaseHTTPRequestHandler):
                 # <td nowrap='nowrap'></td>
                 arr.append(
                     "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td>"
-                    "<td>{6}</td><td>{7}</td><td>{8}</td><td nowrap='nowrap'>{9}</td><td>{10}</td><td>{11}</td></tr>".format(
-                        i + 1, '%s:%s' % (p.ip, p.port), p.latency,
+                    "<td>{6}</td><td>{7}</td><td>{8}</td><td>{9}</td><td nowrap='nowrap'>{10}</td>"
+                    "<td>{11}</td><td>{12}</td></tr>".format(
+                        i + 1, '%s:%s' % (p.ip, p.port), p.latency, p.google,
                         p.http_pass_proxy_ip, p.https_pass_proxy_ip,
                         p.http_anonymous, p.https_anonymous,
                         p.http_weight, p.https_weight,
@@ -84,7 +83,7 @@ class ResquestHandler(BaseHTTPRequestHandler):
                 <tbody>{1}
                 </tbody></table></br>
                 <table width="900" style="margin-left:20px; border-collapse:collapse; padding-left:10px"  border="1"  cellPadding=3 bordercolor="#BBBBBB">
-                <thead bgcolor="#DDDDDD"><tr><th>row</th><th>proxy</th><th>elapsed</th>
+                <thead bgcolor="#DDDDDD"><tr><th>row</th><th>proxy</th><th>elapsed</th><th>google</th>
                   <th>http_pass_ip</th><th>https_pass_ip</th>
                   <th>http_ano</th><th>https_ano</th>
                   <th>http_weight</th><th>https_weight</th>

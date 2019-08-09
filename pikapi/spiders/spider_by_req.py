@@ -1,10 +1,10 @@
-import base64
 import logging
 import re
 import time
 
 import requests
 from pyquery import PyQuery
+
 from pikapi.spiders.spider import Spider
 
 logger = logging.getLogger(__name__)
@@ -13,17 +13,17 @@ logger = logging.getLogger(__name__)
 class SpiderTxt(Spider):
     name = 'txt'
     start_urls = [
-            "http://www.proxylists.net/http_highanon.txt",
-            "http://ab57.ru/downloads/proxylist.txt",
-            "http://ab57.ru/downloads/proxyold.txt",
-            "http://pubproxy.com/api/proxy?limit=20&format=txt&type=http",
-            "http://comp0.ru/downloads/proxylist.txt",
-            'https://www.rmccurdy.com/scripts/proxy/good.txt',
-            'http://www.atomintersoft.com/anonymous_proxy_list',
-            'https://raw.githubusercontent.com/a2u/free-proxy-list/master/free-proxy-list.txt',
-            'http://www.atomintersoft.com/high_anonymity_elite_proxy_list',
-            'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt'
-        ]
+        "http://www.proxylists.net/http_highanon.txt",
+        "http://ab57.ru/downloads/proxylist.txt",
+        "http://ab57.ru/downloads/proxyold.txt",
+        "http://pubproxy.com/api/proxy?limit=20&format=txt&type=http",
+        "http://comp0.ru/downloads/proxylist.txt",
+        'https://www.rmccurdy.com/scripts/proxy/good.txt',
+        'http://www.atomintersoft.com/anonymous_proxy_list',
+        'https://raw.githubusercontent.com/a2u/free-proxy-list/master/free-proxy-list.txt',
+        'http://www.atomintersoft.com/high_anonymity_elite_proxy_list',
+        'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt'
+    ]
 
     def parse(self, html):
         lst = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{2,5}', html)
@@ -41,7 +41,7 @@ class SpiderData5u(Spider):
 
 class SpiderIpaddress(Spider):
     name = 'www.ipaddress.com'
-    start_urls = ['https://www.ipaddress.com/proxy-list/' ]
+    start_urls = ['https://www.ipaddress.com/proxy-list/']
     parse_args = ('table > tbody > tr', 'td', 0, -1)
 
 
@@ -60,6 +60,7 @@ class SpiderMrhinkydink(Spider):
                   ]
     parse_args = ('table > tr', 'td', 0, 1)
     # parse_args = ('tr.text',  'td', 0, 1)
+
 
 class SpiderXici(Spider):
     name = 'www.xicidaili.com'
@@ -85,7 +86,7 @@ class SpiderIphai(Spider):
                   'http://www.iphai.com/free/ng',
                   'http://www.iphai.com/free/np',
                   'http://www.iphai.com/free/wg']
-    parse_args = ('table > tr','td', 0, 1)
+    parse_args = ('table > tr', 'td', 0, 1)
 
 
 class SpiderFeilong(Spider):
@@ -109,7 +110,7 @@ class SpiderIp3366(Spider):
 class SpiderProxyListen(Spider):
     name = 'www.proxy-listen.de'
     start_urls = ['https://www.proxy-listen.de/Proxy/Proxyliste.html']
-    parse_args = ('table.proxyList > tr','td', 0, 1)
+    parse_args = ('table.proxyList > tr', 'td', 0, 1)
 
     def crawl(self, obj=None):
         exc = None
@@ -142,29 +143,34 @@ class SpiderProxyListen(Spider):
         return self, obj, exc
 
 
-class _SpiderMimvp(Spider):
-    # 端口为图片
-    name = 'proxy.mimvp.com'
-    start_urls = ['https://proxy.mimvp.com/free.php?proxy=in_hp',
-                  'https://proxy.mimvp.com/free.php?proxy=in_tp']
-    crack_url =None
+# class SpiderMimvp(Spider):
+#     # 端口为图片
+#     name = 'proxy.mimvp.com'
+#     start_urls = ['https://proxy.mimvp.com/free.php?proxy=in_hp',
+#                   'https://proxy.mimvp.com/free.php?proxy=in_tp']
+#     crack_url = None
+#
+#     def img2code(self, imgurl):
+#         ir = requests.get(imgurl, headers=self._headers, timeout=10)
+#         if ir.status_code == 200:
+#             post_data = {"image": base64.b64encode(ir.content)}
+#             res = requests.post(self.crack_url, data=post_data)
+#             return res.text
+#
+#     def parse(self, html):
+#         doc = PyQuery(html)
+#         trs = doc('.free-table > tbody > td.tbl-proxy-ip,.tbl-proxy-port')
+#         for t in trs.items():
+#             ip = t('td.tbl-proxy-ip').text()
+#             img = t('td.tbl-proxy-port > img').attr('src')  # 端口为图片需要进行识别
+#             port = self.img2code(img)
+#             if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
+#                 self._proxies.append((ip, port))
 
-    def img2code(self, imgurl):
-        ir = requests.get(imgurl, headers=self._headers, timeout=10)
-        if ir.status_code == 200:
-            post_data = {"image": base64.b64encode(ir.content)}
-            res = requests.post(self.crack_url, data=post_data)  # TODO:
-            return res.text
-
-    def parse(self, html):
-        doc = PyQuery(html)
-        trs = doc('.free-table > tbody > td.tbl-proxy-ip,.tbl-proxy-port')
-        for t in trs.items():
-            ip = t('td.tbl-proxy-ip').text()
-            img = t('td.tbl-proxy-port > img').attr('src')  # 端口为图片需要进行识别
-            port = self.img2code(img)
-            if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip):
-                self._proxies.append((ip, port))
+# class SpiderIpjing(Spider):
+#     # 端口为图片
+#     name = 'www.ipjing.com'
+#     start_urls = ['https://www.ipjing.com//?page={}'.format(i) for i in range(1, 7)]
 
 
 class SpiderProxylistplus(Spider):
@@ -176,9 +182,80 @@ class SpiderProxylistplus(Spider):
 class SpiderJiangxianli(Spider):
     name = 'ip.jiangxianli.com'
     start_urls = ['http://ip.jiangxianli.com/?page={}'.format(i) for i in range(1, 4)]
-    parse_args = ('table > tbody > tr','td', 1, 2)
+    parse_args = ('table > tbody > tr', 'td', 1, 2)
 
 
 class SpiderKxdaili(Spider):
     name = 'kxdaili.com'
     start_urls = ['http://www.kxdaili.com/dailiip/%s/%s.html#ip' % (i, j) for i in range(1, 3) for j in range(1, 11)]
+
+
+class SpiderCrossincode(Spider):
+    name = 'lab.crossincode.com'
+    start_urls = ['https://lab.crossincode.com/proxy/']
+    parse_args = ('table > tr', 'td', 0, 1)
+
+
+class SpiderXsdaili(Spider):
+    name = 'www.xsdaili.com'
+    start_urls = ['http://www.xsdaili.com/']
+    parse_args = ('.cont', 'br', 0, 1)
+
+    def setUp(self):
+        html = self.reqs(self.start_urls[0])
+        doc = PyQuery(html)
+        tabs = doc('div.table')
+        self.start_urls.clear()
+        for i, t in enumerate(tabs.items()):
+            a = t('div:nth-child(1) > a')
+            # print(i, a.attr('href'), a.text())
+            self.start_urls.append('http://www.xsdaili.com%s' % a.attr('href'))
+            if i > 2:
+                break
+
+    def parse(self, html):
+        lst = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{2,5}', html)
+        for it in lst:
+            ip, port = it.split(':')
+            if ip and port:
+                self._proxies.append((ip, port))
+
+
+class SpiderZdaye(SpiderXsdaili):
+    name = 'ip.zdaye.com'
+    start_urls = ['http://ip.zdaye.com/dayProxy.html']
+    parse_args = ('.cont', 'br', 0, 1)
+
+    def setUp(self):
+        html = self.reqs(self.start_urls[0])
+        doc = PyQuery(html)
+        tabs = doc('div.thread_item')
+        self.start_urls.clear()
+        for i, t in enumerate(tabs.items()):
+            a = t('div:nth-child(1) > h3 > a')
+            self.start_urls.append('http://www.xsdaili.com%s' % a.attr('href'))
+            if i > 2:
+                break
+
+
+class SpiderSuperfastip(Spider):
+    name = 'www.superfastip.com'
+    start_urls = ['http://www.superfastip.com/welcome/freeip/{}'.format(i) for i in range(1, 5)]
+
+
+class SpiderYqie(Spider):
+    name = 'ip.yqie.com'
+    start_urls = ['http://ip.yqie.com/proxygaoni/',
+                  'http://ip.yqie.com/proxypuni/',
+                  'http://ip.yqie.com/proxyhttps/',
+                  'http://ip.yqie.com/proxyhttp/'
+                  ]
+    parse_args = ('#GridViewOrder > tr', 'td', 1, 2)
+
+
+class SpiderXiladaili(Spider):
+    name = 'www.xiladaili.com'
+    start_urls = ['http://www.xiladaili.com/gaoni/{}/'.format(i) for i in range(1, 5)] + \
+                 ['http://www.xiladaili.com/http/{}/'.format(i) for i in range(1, 5)] + \
+                 ['http://www.xiladaili.com/https/{}/'.format(i) for i in range(1, 5)]
+    parse_args = ('.fl-table > tbody > tr', 'td', 0, -1)

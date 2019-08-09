@@ -10,8 +10,11 @@ from pikapi.spiders import *
 
 
 class TestProvider(unittest.TestCase):
+    def setUp(self) -> None:
+        pass
+
     def test(self):
-        self.assert_provider(SpiderTxt())
+        self.assert_provider(SpiderXiladaili())
         # for p in all_providers:
         #     self.assert_provider(p())
 
