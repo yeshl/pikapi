@@ -10,6 +10,7 @@ from threading import Thread
 from pikapi.config import get_config
 from pikapi.database import ProxyIP, ProxyWebSite
 from pikapi.spiders import *
+from pikapi.squid import Squid
 from pikapi.validators.validate_manager import ValidateManager
 
 logger = logging.getLogger(__name__)
@@ -67,14 +68,13 @@ def crawl_callback(future):
     for p in proxies:
         validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
     pw.merge()
-
+    logger.info("{} crawl END".format(provider.name, pw.proxy_count))
 
 def crawl_ips(spider_queue, validator_queue):
     # if sys.platform.startswith('linux'):
     pn = multiprocessing.current_process().name
     if 'MainProcess' != pn and len(pn.split('-')) > 1:
         for h in logger.parent.handlers:
-
             if type(h) == RotatingFileHandler:
                 logfile = '{}_{}.log'.format(h.baseFilename.rstrip('.log'), pn.split('-')[1])
                 _fh = RotatingFileHandler(logfile, "a", maxBytes=h.maxBytes,
@@ -86,38 +86,49 @@ def crawl_ips(spider_queue, validator_queue):
                 logger.debug("change new logfile %s" % logfile)
     executor = BoundedThreadPoolExecutor(max_workers=32)
     while True:
-        p = spider_queue.get()
-        future = executor.submit(p.crawl, validator_queue)
+        sp = spider_queue.get()
+        future = executor.submit(sp.crawl, validator_queue)
+        logger.info("%s crawl BEGIN" % sp.name)
         future.add_done_callback(crawl_callback)
 
 
 class Scheduler(object):
     spider_queue = Queue(32)
-    validator_queue = Queue(5120)
+    validator_queue = Queue(12800)
 
     def __init__(self):
+        self._stop = False
         self.crawl_process = None
         self.validator_thread = None
         self.cron_thread = None
         self.validator_pool = BoundedThreadPoolExecutor(max_workers=256)
 
-    def feed_from_db(self):
-        proxies = ProxyIP.select().where(ProxyIP.updated_at < datetime.now() - timedelta(minutes=15))
-        i = 0
-        for p in proxies.execute():
-            self.validator_queue.put(p)
-            i += 1
-        logger.info('from db validate task:{}'.format(i))
+    def feed(self):
+        last_crawl_time = datetime.now() - timedelta(minutes=50)
+        while not self._stop:
+            if self.validator_queue.qsize() < 100:
+                i = 0
+                # peewee 会对相同的查询进行缓存
+                proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+                                                 & (ProxyIP.https_weight > 0) & (ProxyIP.http_weight > 0))
+                for p in proxies.execute():
+                    self.validator_queue.put(p)
+                    i += 1
+                logger.info('proxy from db :{}'.format(i))
+                if i < 500 and last_crawl_time < datetime.now() - timedelta(minutes=8):
+                    for provider in all_providers:
+                        self.spider_queue.put(provider())
+                    last_crawl_time = datetime.now()
+                    logger.info('spiders :{} in queue'.format(len(all_providers)))
+                    time.sleep(10*len(all_providers))
+            time.sleep(10)
 
-    def sche_feed(self):
-        self.feed_from_db()
-        for provider in all_providers:
-            self.spider_queue.put(provider())
-        logger.info('start spiders:{}'.format(len(all_providers)))
-
-    def cron_schedule(self):
-        self.sche_feed()
-        TimerJob(60 * 15, self.sche_feed)
+    def schedule_thread(self):
+        if get_config('squid'):
+            logger.info('schedule squid enabled')
+            sq = Squid()
+            TimerJob(60*7, sq.reconfigure)
+        self.feed()
 
     def validate_proxy_ip(self, p: ProxyIP):
         if ValidateManager.should_validate(p):
@@ -149,7 +160,7 @@ class Scheduler(object):
         logger.info('Scheduler starts...')
         self.crawl_process = Process(target=crawl_ips, args=(self.spider_queue, self.validator_queue))
         self.validator_thread = Thread(target=self.validate_ips)
-        self.cron_thread = Thread(target=self.cron_schedule)
+        self.cron_thread = Thread(target=self.schedule_thread)
 
         self.crawl_process.daemon = True
         self.validator_thread.daemon = True
@@ -180,7 +191,7 @@ class Scheduler(object):
             time.sleep(4)
 
     def stop(self):
-        self.spider_queue.close()
         self.crawl_process.terminate()
-        # self.validator_thread.terminate() # TODO: 'terminate' the thread using a flag
+        self._stop = True
+        self.spider_queue.close()
         self.validator_pool.shutdown(wait=False)

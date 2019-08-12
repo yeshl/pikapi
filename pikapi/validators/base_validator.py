@@ -1,8 +1,9 @@
-import math
-import time
-import logging
-import requests
 import json
+import logging
+import math
+
+import requests
+
 from pikapi.database import ProxyIP
 from .tcpping import ping
 
@@ -32,8 +33,8 @@ class BaseValidator(object):
     def ip_info(self):
         try:
             # logger.debug("query ip info: {0} ".format(IP_INFO_AIP.format(self._proxy_ip.ip)))
-            r = requests.get(IP_INFO_AIP.format(self._proxy_ip.ip), proxies=self._proxy,\
-                             headers=self._header, verify=False, timeout=5)
+            r = requests.get(IP_INFO_AIP.format(self._proxy_ip.ip), proxies=self._proxy,
+                             headers=self._header, verify=False, timeout=(5,7))
             '''
             {"as":"AS14061 DigitalOcean, LLC","city":"North Bergen","country":"美国","countryCode":"US",
             "isp":"DigitalOcean, LLC","lat":40.8054,"lon":-74.0241,"org":"Digital Ocean","query":"159.203.186.40",
@@ -55,8 +56,8 @@ class BaseValidator(object):
     def ip_info2(self):
         try:
             # logger.debug("query ip info: {0} ".format(IP_INFO_AIP2.format(self._proxy_ip.ip).format(self._proxy_ip.ip)))
-            r = requests.get(IP_INFO_AIP2.format(self._proxy_ip.ip), proxies=self._proxy,\
-                             headers=self._header, verify=False, timeout=5)
+            r = requests.get(IP_INFO_AIP2.format(self._proxy_ip.ip), proxies=self._proxy,
+                             headers=self._header, verify=False, timeout=(5,7))
             '''
             {"code":0,"data":{"ip":"103.70.205.24","country":"印度","area":"","region":"西孟加拉","city":"XX",
             "county":"XX","isp":"XX","country_id":"IN","area_id":"","region_id":"IN_136","city_id":"xx",

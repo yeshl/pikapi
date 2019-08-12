@@ -69,7 +69,7 @@ class ProxyIP(BaseModel):
     ip = CharField(unique=True, max_length=16)
     port = IntegerField()
     created_at = DateTimeField(default=datetime.datetime.now)
-    updated_at = DateTimeField(default=datetime.datetime.now)
+    updated_at = DateTimeField(null=True, default=datetime.datetime.now)
     latency = FloatField(default=-1)
     google = IntegerField(default=0)
     failed_validate = IntegerField(default=0)
@@ -101,7 +101,7 @@ class ProxyIP(BaseModel):
         cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
                              http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
                              http_weight=self.http_weight, https_weight=self.https_weight,
-                             failed_validate=self.failed_validate,
+                             latency=self.latency, failed_validate=self.failed_validate,
                              updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")) \
             .where(ProxyIP.ip == self.ip).execute()
         if 0 == cnt:

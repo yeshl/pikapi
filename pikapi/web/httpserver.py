@@ -7,14 +7,14 @@ from datetime import datetime, timedelta
 import json
 
 logger = logging.getLogger(__name__)
+
 _valid_proxies_query = ProxyIP.select() \
     .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
     .where(ProxyIP.http_weight + ProxyIP.https_weight > 0) \
-    # .where()
 
 
 def api_v1_proxies():
-    ps = _valid_proxies_query.order_by(ProxyIP.google.desc(),ProxyIP.https_weight.desc()).limit(60)
+    ps = _valid_proxies_query.order_by(ProxyIP.google.desc(),ProxyIP.https_weight.desc(),ProxyIP.latency).limit(60)
     return ps
 
 
@@ -70,7 +70,7 @@ class ResquestHandler(BaseHTTPRequestHandler):
                         p.http_pass_proxy_ip, p.https_pass_proxy_ip,
                         p.http_anonymous, p.https_anonymous,
                         p.http_weight, p.https_weight,
-                        p.updated_at.strftime("%Y-%m-%d %H:%I:%S"),
+                        p.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
                         p.country, p.city
                     ))
             ips = ''.join(arr)

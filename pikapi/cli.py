@@ -54,6 +54,8 @@ def main(args) -> int:
                         help='The sqlite database file location')
     parser.add_argument('--no-validate', '-nv', action='store_true',
                         help='Prevent starting validation)')
+    parser.add_argument('--squid', '-s', action='store_true',
+                        help='reconfigure squid')
 
     parsed_args = parser.parse_args(args)
     parsed_args_dict = vars(parsed_args)
