@@ -75,9 +75,10 @@ class ValidateManager(object):
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:
         if proxy_ip.id is None:
             for p in ProxyIP.select().where(ProxyIP.ip == proxy_ip.ip):
-                if p.updated_at > datetime.now() - timedelta(minutes=15):
+                if p.updated_at > datetime.now() - timedelta(minutes=20):
                     return False
-                if p.http_weight+p.https_weight <= 0 \
-                   and p.updated_at > datetime.now() - timedelta(hours=24*p.failed_validate):
+                if p.latency > 40 and p.updated_at > datetime.now() - timedelta(hours=12):
+                    return False
+                if p.http_weight+p.https_weight <= 0 and p.updated_at > datetime.now() - timedelta(hours=12):
                     return False
         return True

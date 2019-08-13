@@ -14,12 +14,12 @@ class TestProvider(unittest.TestCase):
         pass
 
     def test(self):
-        self.assert_provider(SpiderXiladaili())
+        self.assert_provider(SpiderXici())
         # for p in all_providers:
         #     self.assert_provider(p())
 
     def assert_provider(self, p: Spider):
-        provider, obj, exc = p.crawl(None)
+        provider, obj, exc = p.crawl()
         proxies = list(set(provider.proxies))
         self.assertTrue(exc is None, provider.name + " : " + exc.__class__.__name__)
         self.assertGreater(len(proxies), 0, provider.name)

@@ -66,6 +66,10 @@ class Spider(object):
         self._req_timeout = 30
         self._sleep = 1
         self._session = None
+        self._crawproxy = {
+            # 'http': 'http://{}:{}'.format(self._proxy_ip.ip, self._proxy_ip.port),
+            # 'https': 'https://{}:{}'.format(self._proxy_ip.ip, self._proxy_ip.port)
+        }
         self._proxies = []
 
     @property
@@ -73,7 +77,7 @@ class Spider(object):
         return self._proxies
 
     def setUp(self):
-        pass
+        logger.info("%s crawl setUp" % self.name)
 
     def parse(self, html):
         doc = PyQuery(html)
@@ -90,20 +94,24 @@ class Spider(object):
                 self._proxies.append((ip, port))
 
     def reqs(self, url):
-        resp = requests.get(url, headers=self._headers, timeout=(10,self._req_timeout), verify=False)
+        logger.info('reqs {}'.format(url))
+        resp = requests.get(url, headers=self._headers, proxies=self._crawproxy,
+                            timeout=(10, self._req_timeout), verify=False)
         resp.encoding = self._encoding
         resp.close()
         return resp.text
 
-    def crawl(self, obj=None):
-        self.setUp()
+    def crawl(self):
         exc = None
         self._session = requests.session()
         try:
+            logger.info('{} crawl BEGIN'.format(self.name))
+            self.setUp()
             for url in self.start_urls:
-                logger.debug('requests {}'.format(url))
+                logger.info('requests {}'.format(url))
                 try:
-                    resp = self._session.get(url, headers=self._headers, timeout=(15, self._req_timeout), verify=False)
+                    resp = self._session.get(url, headers=self._headers,  proxies=self._crawproxy,
+                                             timeout=(15, self._req_timeout), verify=False)
                 except Exception as e1:
                     if self.name == 'txt':
                         logger.error("{} :{}".format(url, e1))
@@ -115,14 +123,14 @@ class Spider(object):
                     self.parse(resp.text)
                     logger.info('{} crawl proxies: {}'.format(url, len(self._proxies)))
                 else:
-                    logger.error("response code：{} from {}".format(resp.status_code,url))
+                    logger.error("response code：{} from {}".format(resp.status_code, url))
                 time.sleep(self._sleep)
         except Exception as e:
+            logger.error("error:%s", str(e), exc_info=True)
             exc = e
         finally:
             self._session.close()
-
-        return self, obj, exc
+        return self, exc
 
     def __str__(self):
         return self.name
@@ -163,6 +171,7 @@ class CookieSpider(Spider):
         self._headers = header
 
     def setUp(self):
+        super().setUp()
         if 'MainThread' != threading.current_thread().name:
             asyncio.set_event_loop(asyncio.new_event_loop())
         loop = asyncio.get_event_loop()
@@ -181,8 +190,6 @@ class CookieSpider(Spider):
             logger.info('req close chromium')
             loop.run_until_complete(self._browser.close())
             logger.info('req close chromium complete')
-
-
 
 
 class BrowserSpider(Spider):
@@ -231,7 +238,7 @@ class BrowserSpider(Spider):
             loop.run_until_complete(self._browser.close())
             logger.info('close chromium complete')
 
-    def crawl(self, obj=None):
+    def crawl(self):
         self.setUp()
         exc = None
         try:
@@ -239,4 +246,4 @@ class BrowserSpider(Spider):
         except Exception as e:
             # logger.error("asyncio error:%s", str(e), exc_info=True)
             exc = e
-        return self, obj, exc
+        return self, exc

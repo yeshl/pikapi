@@ -112,12 +112,12 @@ class SpiderProxyListen(Spider):
     start_urls = ['https://www.proxy-listen.de/Proxy/Proxyliste.html']
     parse_args = ('table.proxyList > tr', 'td', 0, 1)
 
-    def crawl(self, obj=None):
+    def crawl(self):
         exc = None
         self._session = requests.session()
         try:
             for url in self.start_urls:
-                logger.debug('requests {}'.format(url))
+                logger.debug('{} requests {}'.format(self.name, url))
                 resp = self._session.get(url, headers=self._headers, timeout=self._req_timeout, verify=False)
                 key_pattern = re.compile('''name="fefefsfesf4tzrhtzuh" value="([^"]+)"''')
                 keysearch = re.findall(key_pattern, resp.text)
@@ -139,8 +139,7 @@ class SpiderProxyListen(Spider):
             exc = e
         finally:
             self._session.close()
-
-        return self, obj, exc
+        return self,  exc
 
 
 # class SpiderMimvp(Spider):
@@ -202,6 +201,7 @@ class SpiderXsdaili(Spider):
     parse_args = ('.cont', 'br', 0, 1)
 
     def setUp(self):
+        super().setUp()
         html = self.reqs(self.start_urls[0])
         doc = PyQuery(html)
         tabs = doc('div.table')
@@ -222,20 +222,23 @@ class SpiderXsdaili(Spider):
 
 
 class SpiderZdaye(SpiderXsdaili):
+    #会限制ip 反爬
     name = 'ip.zdaye.com'
     start_urls = ['http://ip.zdaye.com/dayProxy.html']
     parse_args = ('.cont', 'br', 0, 1)
 
     def setUp(self):
+        Spider.setUp(self)
         html = self.reqs(self.start_urls[0])
         doc = PyQuery(html)
         tabs = doc('div.thread_item')
         self.start_urls.clear()
         for i, t in enumerate(tabs.items()):
             a = t('div:nth-child(1) > h3 > a')
-            self.start_urls.append('http://www.xsdaili.com%s' % a.attr('href'))
+            self.start_urls.append('http://ip.zdaye.com%s' % a.attr('href'))
             if i > 2:
                 break
+        self._headers['Referer'] = 'http://ip.zdaye.com/dayProxy.html'
 
 
 class SpiderSuperfastip(Spider):

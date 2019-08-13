@@ -14,7 +14,8 @@ _valid_proxies_query = ProxyIP.select() \
 
 
 def api_v1_proxies():
-    ps = _valid_proxies_query.order_by(ProxyIP.google.desc(),ProxyIP.https_weight.desc(),ProxyIP.latency).limit(60)
+    ps = _valid_proxies_query.order_by(ProxyIP.google.desc(),ProxyIP.https_weight.desc(),
+                                       ProxyIP.http_weight.desc(),ProxyIP.latency).limit(100)
     return ps
 
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pikapi.database import ProxyIP
 
 logger = logging.getLogger(__name__)
-# logger = logging.getLogger('pikapi.Squid')
+#logger = logging.getLogger('pikapi.Squid')
 
 
 class Squid:

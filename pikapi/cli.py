@@ -76,7 +76,6 @@ def main(args) -> int:
     try:
         if not get_config('skip_scheduler'):
             s.start()
-
         # web server
         if not get_config('no_webserver'):
             logger.info('Start the web server')
