@@ -10,12 +10,10 @@ from unittest import TestCase
 from pikapi.database import ProxyIP
 from pikapi.validators.validate_manager import ValidateManager
 
-from pikapi.database import create_db_tables
-
 
 class TestValidateManager(TestCase):
     def setUp(self) -> None:
-        create_db_tables()
+        pass
 
     def test_validate(self):
         p = ProxyIP(ip='159.203.186.40', port='8080')

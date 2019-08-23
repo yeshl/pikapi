@@ -6,7 +6,7 @@ import requests
 from datetime import datetime, timedelta
 
 from pikapi.applog import logger
-from pikapi.database import ProxyIP
+from pikapi.database import ProxyIP, _db
 from pikapi.validators import all_validators
 
 __EXTERNAL_IP__ = None
@@ -63,7 +63,7 @@ class ValidateManager(object):
         self._proxy.latency = round(time.perf_counter() - c0, 2)
         if self._proxy.https_weight > 0:
             self.validate_google()
-        logger.info("validate END {} weight:{} elapsed:{}s".format(self._proxy,
+        logger.debug("validate END {} weight:{} elapsed:{}s".format(self._proxy,
                                              self._proxy.http_weight + self._proxy.https_weight,
                                              self._proxy.latency))
         self.save()
@@ -74,7 +74,9 @@ class ValidateManager(object):
     @classmethod
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:
         if proxy_ip.id is None:
-            for p in ProxyIP.select().where(ProxyIP.ip == proxy_ip.ip):
+            with _db.connection_context():
+                p = ProxyIP.get_or_none(ProxyIP.ip == proxy_ip.ip)
+            if p is not None:
                 if p.updated_at > datetime.now() - timedelta(minutes=20):
                     return False
                 if p.latency > 40 and p.updated_at > datetime.now() - timedelta(hours=12):

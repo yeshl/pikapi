@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 from datetime import datetime, timedelta
 
@@ -16,21 +17,30 @@ logger.setLevel(logging.INFO)
 # logger.setLevel(logging.DEBUG)
 # logger.addHandler(logging.StreamHandler())
 
+
 def test_squid():
-    proxies = {'https': 'https://{}:{}'.format('192.168.142.101', 4128)}
+    # r = requests.get('http://192.168.154.101:8899/api?format=csv', timeout=(3, 7))
+    # arr = [p.split(':') for p in r.text.split(',')]
+    arr = [['192.168.0.242', '3128']]
+    # proxies = {'https': 'https://{}:{}'.format('192.168.3.201', 4128)}
     for i in range(10000):
+        resp = None
         try:
-            logger.info('req:%d' % i)
-            r = requests.get('https://pv.sohu.com/cityjson',
-                             proxies=proxies,
+            ip = random.choice(arr)
+            logger.info('req:{} -x {}'.format(i, ip))
+            resp = requests.get('https://pv.sohu.com/cityjson',
+                             proxies={'https': 'https://{}:{}'.format(ip[0], ip[1])},
                              headers={
                                  'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
                                  'Connection': 'keep-alive'},
                              verify=False,
-                             timeout=(5, 25))
-            logger.info(r.text)
+                             timeout=(5, 20))
+            logger.info(resp.text)
         except Exception as e:
             logger.info('ERROR %s' % str(e))
+        finally:
+            if resp is not None:
+                resp.close()
 
 
 def test1():
@@ -44,4 +54,3 @@ def test1():
 
 if __name__ == '__main__':
     test_squid()
-    #test1()

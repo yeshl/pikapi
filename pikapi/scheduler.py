@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from threading import Thread
 
 from pikapi.config import get_config
-from pikapi.database import ProxyIP, ProxyWebSite
+from pikapi.database import ProxyIP, ProxyWebSite, _db
 from pikapi.spiders import *
 from pikapi.squid import Squid
 from pikapi.validators.validate_manager import ValidateManager
@@ -73,13 +73,15 @@ def crawl_callback(future):
         global VALIDATOR_QUEUE
         for p in proxies:
             VALIDATOR_QUEUE.put(ProxyIP(ip=p[0], port=p[1]))
+        logger.info("{} proxies enqueue:{}".format(provider.name, pw.proxy_count))
     except Exception as e:
         pw.stats = e.__class__.__name__
         logger.debug("{} crawl callback error:{}".format(provider.name, exc))
+    logger.info("{} proxies save to db:{}".format(provider.name, pw.proxy_count))
     pw.merge()
+    logger.info("{} crawl END".format(provider.name, pw.proxy_count))
     global RUNNING_SPIDERS
     RUNNING_SPIDERS.value -= 1
-    logger.info("{} crawl END".format(provider.name, pw.proxy_count))
 
 
 def crawl_ips(running_spiders, spider_queue, validator_queue):
@@ -99,9 +101,9 @@ def crawl_ips(running_spiders, spider_queue, validator_queue):
                 _fh.setFormatter(h.formatter)
                 logger.parent.removeHandler(h)
                 logger.parent.addHandler(_fh)
-                logger.debug("change new logfile %s" % logfile)
-    executor = BoundedThreadPoolExecutor(max_workers=32)
+                logger.info("change new logfile %s" % logfile)
 
+    executor = BoundedThreadPoolExecutor(max_workers=32)
     while True:
         sp = spider_queue.get()
         future = executor.submit(sp.crawl)
@@ -125,14 +127,17 @@ class Scheduler(object):
     def feed(self):
         last_crawl_time = datetime.now() - timedelta(minutes=50)
         while not self._stop:
+            logger.info('feed loop ...')
             if self.validator_queue.qsize() < 100:
                 i = 0
-                # peewee 会对相同的查询进行缓存
-                proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
-                                                 & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
-                for p in proxies.execute():
-                    Scheduler.validator_queue.put(p)
-                    i += 1
+                logger.info('query proxies from db ...')
+                with _db.connection_context():
+                    proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+                                                     & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
+                    for p in proxies.iterator():
+                        Scheduler.validator_queue.put(p)
+                        i += 1
+
                 logger.info('proxy from db :{}'.format(i))
                 if i < 500 and Scheduler.running_spiders.value == 0 \
                         and last_crawl_time < datetime.now() - timedelta(minutes=15):
@@ -147,10 +152,11 @@ class Scheduler(object):
         if get_config('squid'):
             logger.info('schedule squid enabled')
             sq = Squid()
-            TimerJob(60 * 7, sq.reconfigure)
+            TimerJob(60 * 5, sq.reconfigure)
         self.feed()
 
-    def validate_proxy_ip(self, p: ProxyIP):
+    @staticmethod
+    def validate_proxy_ip(p):
         if ValidateManager.should_validate(p):
             v = ValidateManager(p)
             try:
@@ -158,7 +164,7 @@ class Scheduler(object):
             except (KeyboardInterrupt, SystemExit):
                 logger.info('KeyboardInterrupt terminates validate_proxy_ip()')
         else:
-            logger.info('skip validate {}  '.format(p))
+            logger.debug('skip validate {}  '.format(p))
 
     def validate_ips(self):
         while True:
@@ -178,10 +184,15 @@ class Scheduler(object):
         and validator threads for checking whether the fetched proxies are able to use.
         """
         logger.info('Scheduler starts...')
-        self.crawl_process = multiprocessing.Process(target=crawl_ips,
-                                                     args=(Scheduler.running_spiders,
-                                                           Scheduler.spider_queue,
-                                                           Scheduler.validator_queue))
+        #这里使用独立进程采集，在linux上导致sqlite更新数据在此进程堵塞，不明原因
+        # self.crawl_process = multiprocessing.Process(target=crawl_ips,
+        #                                              args=(Scheduler.running_spiders,
+        #                                                    Scheduler.spider_queue,
+        #                                                    Scheduler.validator_queue))
+        self.crawl_process = Thread(target=crawl_ips,
+                                    args=(Scheduler.running_spiders,
+                                          Scheduler.spider_queue,
+                                          Scheduler.validator_queue))
         self.validator_thread = Thread(target=self.validate_ips)
         self.cron_thread = Thread(target=self.schedule_thread)
 

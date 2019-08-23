@@ -3,16 +3,14 @@ import random
 import socket
 import struct
 import unittest
-from datetime import datetime, timedelta
+from time import sleep
 
-from pikapi.database import create_connection, create_db_tables, ProxyIP
+from pikapi.database import create_connection, ProxyIP
 
-# Add logging
+# logger = logging.getLogger('pikapi.test')
 logger = logging.getLogger('peewee')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
-
-logger = logging.getLogger('pikapi.test')
 
 
 def gen_random_ip() -> str:
@@ -22,7 +20,6 @@ def gen_random_ip() -> str:
 class Test(unittest.TestCase):
     def test(self):
         db = create_connection()
-        create_db_tables()
 
     @staticmethod
     def delete_ip(ip: str):
@@ -39,12 +36,22 @@ class Test(unittest.TestCase):
         self.delete_ip(ip_str)
 
     def testFeedFromDb(self):
-        proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
-                               & (ProxyIP.https_weight > 0) & (ProxyIP.http_weight > 0))
-        count = proxies.count()
-        assert count > 0
-        logger.info(count)
+        # proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+        #                                  & (ProxyIP.https_weight > 0) & (ProxyIP.http_weight > 0))
+        while True:
+            proxies = ProxyIP.select(ProxyIP.ip).where((ProxyIP.https_weight > 0) & (ProxyIP.http_weight > 0)) \
+                .where(ProxyIP.updated_at > "datetime('now','-1 hour','localtime')")
+            for x in proxies.iterator():
+                print(x.ip)
+            sleep(1)
+        # count = proxies.count()
+        # assert count > 0
+        # logger.info(count)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestSuite()
+    test_cases = [Test("testFeedFromDb")]
+    suite.addTests(test_cases)
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)

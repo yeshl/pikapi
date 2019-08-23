@@ -24,8 +24,9 @@
 python3 setup.py sdist  
 # 创建环境venv1
 python3 -m venv venv1
+source venv1/bin/activate
 执行安装
-pip3 install pikapi-2.1.1.tar.gz
+pip3 install pikapi-1.2.5.tar.gz
 chrome依赖包
 yum install -y libXcomposite.x86_64 libXcursor.x86_64 libXdamage.x86_64 cups-libs.x86_64 libXScrnSaver.x86_64 pango.x86_64 atk.x86_64 gtk3.x86_64 psmisc
 
@@ -34,7 +35,8 @@ python -m pikapi -bt
 运行
 python -m pikapi或者 python ./venv1/lib64/python3.6/site-packages/pikapi/__main__.py
 
-
+后台运行并定时更新squid
+nohup python -m pikapi -s >/dev/null 2>&1 &
 
 1.浏览器chrome无法close
 2.peewee出现peewee.OperationalError: database is locked

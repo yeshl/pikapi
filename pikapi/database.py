@@ -1,40 +1,44 @@
 import datetime
 import logging
 
-from peewee import CharField, DateTimeField, FloatField, IntegerField, SqliteDatabase
+from peewee import CharField, DateTimeField, FloatField, IntegerField, SqliteDatabase, MySQLDatabase
+from playhouse.db_url import connect
 from playhouse.signals import Model
+from playhouse.sqliteq import SqliteQueueDatabase
 
 from pikapi.config import get_config
 
-_db = None
 logger = logging.getLogger(__name__)
 
 # logger = logging.getLogger('peewee')
 # logger.setLevel(logging.DEBUG)
 # logger.addHandler(logging.StreamHandler())
 
+db_path = get_config('db_path', './pikapi.db')
+logger.info('create new db1 connection %s', db_path)
+# _db = SqliteQueueDatabase(
+#     db_path,
+#     use_gevent=False,
+#     autostart=True,
+#     queue_max_size=256,  # Max. # of pending writes that can accumulate.
+#     results_timeout=10.0)  # Max. time to wait for query to be executed.
 
-def create_connection() -> SqliteDatabase:
-    global _db
-    if not _db:
-        db_path = get_config('db_path', './pikapi.db')
-        logger.debug('create new db connection %s', db_path)
-        _db = SqliteDatabase(db_path,pragmas={'journal_mode': 'wal'})
-        _db.timeout=15
-        for k in ['timeout','thread_safe','cache_size','page_size','journal_mode','foreign_keys']:
-            o = getattr(_db, k)
-            logger.debug("db.{}={}".format(k, str(o)))
-    return _db
+# _db = connect('mysql+pool://admin:123456@localhost:3306/db1?max_connections=50&stale_timeout=300&timeout=0')
+
+_db = connect('sqlite+pool:///'+db_path+'?max_connections=50&stale_timeout=300&timeout=0&check_same_thread=False')
+_db.journal_mode = 'wal'
 
 
-def create_db_tables():
-    db = create_connection()
-    db.create_tables([ProxyIP, ProxyWebSite])
+for k in dir(_db):
+    if not k.startswith('_'):
+        o = getattr(_db, k)
+        if type(o) in [tuple, list, str, int, bool]:
+            logger.info("{}={}".format(k, str(o)))
 
 
 class BaseModel(Model):
-     class Meta:
-         database = create_connection()
+    class Meta:
+        database = _db
 
 
 class ProxyWebSite(BaseModel):
@@ -48,13 +52,17 @@ class ProxyWebSite(BaseModel):
     stats = CharField(null=True)
 
     def merge(self):
-        cnt = ProxyWebSite.update(proxy_count=self.proxy_count,
+        logger.info('update crawl BEGIN %s' % str((self.site_name, self.proxy_count, self.stats)))
+        with _db.connection_context():
+            cnt = ProxyWebSite.update(proxy_count=self.proxy_count,
                                   last_fetch=ProxyWebSite.this_fetch,
-                                  this_fetch=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+                                  this_fetch=datetime.datetime.now(),
                                   stats=self.stats) \
-            .where(ProxyWebSite.site_name == self.site_name).execute()
-        if 0 == cnt:
-            cnt = self.save()
+             .where(ProxyWebSite.site_name == self.site_name).execute()
+            # cnt=0
+            logger.info('update crawl END %s' % str((self.site_name, self.proxy_count, self.stats)))
+            if 0 == cnt:
+                cnt = self.save()
         return cnt
 
     def __str__(self):
@@ -96,14 +104,20 @@ class ProxyIP(BaseModel):
         return self.__str__()
 
     def merge(self):
-        if self.http_weight+self.https_weight <= 0:
-            self.failed_validate = self.failed_validate+1
-        cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
-                             http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
-                             http_weight=self.http_weight, https_weight=self.https_weight,
-                             latency=self.latency, failed_validate=self.failed_validate,
-                             updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")) \
-            .where(ProxyIP.ip == self.ip).execute()
-        if 0 == cnt:
-            cnt = self.save()
+        if self.http_weight + self.https_weight <= 0:
+            self.failed_validate = self.failed_validate + 1
+        with _db.connection_context():
+            cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
+                                 http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
+                                 http_weight=self.http_weight, https_weight=self.https_weight,
+                                 latency=self.latency, failed_validate=self.failed_validate,
+                                 updated_at=datetime.datetime.now()) \
+                .where(ProxyIP.ip == self.ip).execute()
+            if 0 == cnt:
+                cnt = self.save()
         return cnt
+
+
+ProxyIP.create_table()
+ProxyWebSite.create_table()
+logger.info("tables created!")

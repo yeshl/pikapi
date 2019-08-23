@@ -7,6 +7,7 @@ from pyppeteer import launch, chromium_downloader
 
 import pikapi
 from pikapi.config import batch_set_config, get_config
+import pikapi.database
 
 CMD_DESCRIPTION = """pikapi command line mode
 This command could start a scheduler for crawling and validating proxies.
@@ -66,11 +67,9 @@ def main(args) -> int:
     logger.info('download url %s', chromium_downloader.downloadURLs)
     handle_special_flags(parsed_args_dict)
 
-    from pikapi.database import create_db_tables
     from pikapi.scheduler import Scheduler
     from pikapi.web import start_web_server
 
-    create_db_tables()
     s = Scheduler()
 
     try:

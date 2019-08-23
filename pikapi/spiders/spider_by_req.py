@@ -202,16 +202,18 @@ class SpiderXsdaili(Spider):
 
     def setUp(self):
         super().setUp()
-        html = self.reqs(self.start_urls[0])
+        html = self.reqs('http://www.xsdaili.com/')
         doc = PyQuery(html)
         tabs = doc('div.table')
-        self.start_urls.clear()
+        urls = []
         for i, t in enumerate(tabs.items()):
             a = t('div:nth-child(1) > a')
             # print(i, a.attr('href'), a.text())
-            self.start_urls.append('http://www.xsdaili.com%s' % a.attr('href'))
+            urls.append('http://www.xsdaili.com%s' % a.attr('href'))
             if i > 2:
                 break
+        if len(urls) > 0:
+            SpiderXsdaili.start_urls = urls
 
     def parse(self, html):
         lst = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{2,5}', html)
@@ -229,15 +231,17 @@ class SpiderZdaye(SpiderXsdaili):
 
     def setUp(self):
         Spider.setUp(self)
-        html = self.reqs(self.start_urls[0])
+        html = self.reqs('http://ip.zdaye.com/dayProxy.html')
         doc = PyQuery(html)
         tabs = doc('div.thread_item')
-        self.start_urls.clear()
+        urls = []
         for i, t in enumerate(tabs.items()):
             a = t('div:nth-child(1) > h3 > a')
-            self.start_urls.append('http://ip.zdaye.com%s' % a.attr('href'))
+            urls.append('http://ip.zdaye.com%s' % a.attr('href'))
             if i > 2:
                 break
+        if len(urls) > 0:
+            SpiderZdaye.start_urls = urls
         self._headers['Referer'] = 'http://ip.zdaye.com/dayProxy.html'
 
 
