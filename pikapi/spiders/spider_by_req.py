@@ -262,8 +262,9 @@ class SpiderYqie(Spider):
 
 class SpiderXiladaili(Spider):
     name = 'www.xiladaili.com'
-    start_urls = ['http://www.xiladaili.com/']+ \
-                 ['http://www.xiladaili.com/gaoni/{}/'.format(i) for i in range(1, 5)] + \
-                 ['http://www.xiladaili.com/http/{}/'.format(i) for i in range(1, 5)] + \
-                 ['http://www.xiladaili.com/https/{}/'.format(i) for i in range(1, 5)]
+    start_urls = ['http://www.xiladaili.com/']
+    # start_urls = ['http://www.xiladaili.com/']+ \
+    #              ['http://www.xiladaili.com/gaoni/{}/'.format(i) for i in range(1, 5)] + \
+    #              ['http://www.xiladaili.com/http/{}/'.format(i) for i in range(1, 5)] + \
+    #              ['http://www.xiladaili.com/https/{}/'.format(i) for i in range(1, 5)]
     parse_args = ('.fl-table > tbody > tr', 'td', 0, -1)

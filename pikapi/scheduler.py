@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 from threading import Thread
 
 from pikapi.config import get_config
-from pikapi.database import ProxyIP, ProxyWebSite, _db
+from pikapi.store import ProxyIP, ProxyWebSite
 from pikapi.spiders import *
 from pikapi.squid import Squid
 from pikapi.validators.validate_manager import ValidateManager
@@ -78,7 +78,7 @@ def crawl_callback(future):
         pw.stats = e.__class__.__name__
         logger.debug("{} crawl callback error:{}".format(provider.name, exc))
     logger.info("{} proxies save to db:{}".format(provider.name, pw.proxy_count))
-    pw.merge()
+    pw.save()
     logger.info("{} crawl END".format(provider.name, pw.proxy_count))
     global RUNNING_SPIDERS
     RUNNING_SPIDERS.value -= 1
@@ -111,8 +111,14 @@ def crawl_ips(running_spiders, spider_queue, validator_queue):
         future.add_done_callback(crawl_callback)
 
 
+def callback(future):
+    try:
+        rst = future.result()
+    except Exception as e:
+        logger.info("callback error %s", e, exc_info=True)
+
+
 class Scheduler(object):
-    # 跨进程访问，在此创建然后传递给新进程
     spider_queue = multiprocessing.Queue(32)
     validator_queue = multiprocessing.Queue(12800)
     running_spiders = multiprocessing.Value("i", 0)
@@ -128,24 +134,28 @@ class Scheduler(object):
         last_crawl_time = datetime.now() - timedelta(minutes=50)
         while not self._stop:
             logger.info('feed loop ...')
-            if self.validator_queue.qsize() < 100:
-                i = 0
-                logger.info('query proxies from db ...')
-                with _db.connection_context():
-                    proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
-                                                     & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
-                    for p in proxies.iterator():
+            try:
+                if self.validator_queue.qsize() < 100:
+                    i = 0
+                    # proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+                    #                                  & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
+                    proxies = ProxyIP.select(lambda x: x.updated_at < datetime.now() - timedelta(minutes=5)
+                                                       and (x.https_weight + x.http_weight > 0))
+                    for p in proxies:
                         Scheduler.validator_queue.put(p)
                         i += 1
-
-                logger.info('proxy from db :{}'.format(i))
-                if i < 500 and Scheduler.running_spiders.value == 0 \
-                        and last_crawl_time < datetime.now() - timedelta(minutes=15):
-                    for provider in all_providers:
-                        Scheduler.spider_queue.put(provider())
-                    last_crawl_time = datetime.now()
-                    logger.info('spiders :{} in queue'.format(len(all_providers)))
-                    time.sleep(120)
+                    logger.info('proxy from db enqueue:{}'.format(i))
+                    if i < 500 and Scheduler.running_spiders.value == 0 \
+                            and last_crawl_time < datetime.now() - timedelta(minutes=15):
+                        for provider in all_providers:
+                            Scheduler.spider_queue.put(provider())
+                        last_crawl_time = datetime.now()
+                        logger.info('spiders :{} enqueue'.format(len(all_providers)))
+                        time.sleep(120)
+            except (KeyboardInterrupt, SystemExit):
+                break
+            except Exception as ex:
+                logger.error("error:%s", str(ex), exc_info=True)
             time.sleep(10)
 
     def schedule_thread(self):
@@ -172,11 +182,14 @@ class Scheduler(object):
                 proxy: ProxyIP = self.validator_queue.get()
                 if not get_config('no_validate'):
                     # logger.debug("submit validate :%s" % proxy.ip)
-                    self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
+                    task = self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
+                    task.add_done_callback(callback)
                 else:
                     logger.debug("no_validate :%s" % proxy.ip)
             except (KeyboardInterrupt, SystemExit):
                 break
+            except Exception as ex:
+                logger.error("error:%s", str(ex), exc_info=True)
 
     def start(self):
         """

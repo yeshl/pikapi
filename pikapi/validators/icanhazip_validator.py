@@ -1,5 +1,5 @@
 import logging
-from pikapi.database import ProxyIP
+from pikapi.store import ProxyIP
 from pikapi.validators.base_validator import BaseValidator
 
 logger = logging.getLogger(__name__)

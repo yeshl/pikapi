@@ -1,6 +1,6 @@
 from http.server import HTTPStatus, HTTPServer, BaseHTTPRequestHandler
 from urllib import parse
-from pikapi.database import ProxyIP, ProxyWebSite, _db
+from pikapi.store import ProxyIP, ProxyWebSite
 import logging
 from threading import Thread
 from datetime import datetime, timedelta
@@ -8,10 +8,10 @@ import json
 
 logger = logging.getLogger(__name__)
 
-_valid_proxies_query = ProxyIP.select() \
-    .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
-    .where(ProxyIP.http_weight + ProxyIP.https_weight > 0) \
 
+# _valid_proxies_query = ProxyIP.select() \
+#     .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=30)) \
+#     .where(ProxyIP.http_weight + ProxyIP.https_weight > 0) \
 
 
 class ResquestHandler(BaseHTTPRequestHandler):
@@ -21,19 +21,25 @@ class ResquestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        print('client :%s'% str(self.client_address))
+        # print('client :%s' % str(self.client_address))
         self.do_HEAD()
         # /api?format=json
         params = parse.parse_qs(parse.urlparse(self.path).query)
-        with _db.connection_context():
-            ps = ProxyIP.select() \
-                .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=60)) \
-                .where(ProxyIP.https_anonymous > 0).where(ProxyIP.http_anonymous > 0) \
-                .where(ProxyIP.https_weight > 0) \
-                .where(ProxyIP.latency < 25) \
-                .order_by(ProxyIP.https_weight.desc(), ProxyIP.https_anonymous.desc(),
-                          ProxyIP.http_weight.desc(), ProxyIP.http_anonymous.desc(), ProxyIP.latency) \
-                .limit(500).execute()
+        # with _db.connection_context():
+        #     ps = ProxyIP.select() \
+        #         .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=60)) \
+        #         .where(ProxyIP.https_anonymous > 0).where(ProxyIP.http_anonymous > 0) \
+        #         .where(ProxyIP.https_weight > 0) \
+        #         .where(ProxyIP.latency < 25) \
+        #         .order_by(ProxyIP.https_weight.desc(), ProxyIP.https_anonymous.desc(),
+        #                   ProxyIP.http_weight.desc(), ProxyIP.http_anonymous.desc(), ProxyIP.latency) \
+        #         .limit(500).execute()
+
+        ps = ProxyIP.select(lambda x: x.updated_at > datetime.now() - timedelta(minutes=60)
+                                      and x.https_anonymous > 0 and x.http_anonymous > 0
+                                      and x.https_weight > 0 and x.latency < 25)
+        ps = sorted(ps, key=lambda x: (-x.https_weight, -x.https_anonymous,
+                                       -x.http_weight, -x.http_anonymous, x.latency))[:100]
         if params.get('format') and 'csv' == params['format'][0]:
             for p in ps:
                 self.wfile.write(('{}:{}:{}:{},'.format(p.ip, p.port, p.http_weight, p.https_weight)).encode("utf-8"))
@@ -43,16 +49,18 @@ class ResquestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(jtxt).encode("utf-8"))
             self.wfile.flush()
         else:
-            with _db.connection_context():
-                total_count = ProxyIP.select().count()
-                valid_count = _valid_proxies_query.count()
+            total_count = len(ProxyIP.store)
+            pi = ProxyIP.select(lambda x: x.updated_at > datetime.now() - timedelta(minutes=30)
+                                          and x.http_weight + x.https_weight > 0)
+            valid_count = len(pi)
             ul = '''<div style='margin-left:20px'><h3> hi:{0}</h3></div>
                     <ul><li><b>{1}</b> proxy ips in total</li>
                     <li><b>{2}</b> of them are valid</li></ul>'''.format(self.client_address, total_count, valid_count)
 
             arr = []
-            with _db.connection_context():
-               pw = ProxyWebSite.select().order_by(ProxyWebSite.this_fetch.desc())
+            pw = ProxyWebSite.select(None)
+            pw.sort(key=lambda x: x.this_fetch, reverse=True)
+
             for x in pw:
                 arr.append('<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>'
                            .format(x.site_name,
@@ -63,9 +71,7 @@ class ResquestHandler(BaseHTTPRequestHandler):
             sites = ''.join(arr)
 
             arr.clear()
-            with _db.connection_context():
-                detail = _valid_proxies_query.order_by(ProxyIP.google.desc(), ProxyIP.https_weight.desc(),
-                                                       ProxyIP.http_weight.desc(), ProxyIP.latency).limit(100)
+            detail = sorted(pi, key=lambda x: (-x.google, -x.https_weight, -x.http_weight, x.latency))[:100]
             for i, p in enumerate(detail):
                 # <td nowrap='nowrap'></td>
                 arr.append(

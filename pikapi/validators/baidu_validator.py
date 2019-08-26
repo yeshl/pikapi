@@ -1,4 +1,4 @@
-from pikapi.database import ProxyIP
+from pikapi.store import ProxyIP
 from pikapi.validators.base_validator import BaseValidator
 
 

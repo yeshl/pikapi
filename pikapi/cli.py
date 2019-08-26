@@ -7,7 +7,7 @@ from pyppeteer import launch, chromium_downloader
 
 import pikapi
 from pikapi.config import batch_set_config, get_config
-import pikapi.database
+import pikapi.store
 
 CMD_DESCRIPTION = """pikapi command line mode
 This command could start a scheduler for crawling and validating proxies.

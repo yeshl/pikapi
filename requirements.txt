@@ -1,5 +1,3 @@
-six
 requests
 pyquery==1.4.0
 pyppeteer==0.0.25
-peewee==3.9.6

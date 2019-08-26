@@ -5,7 +5,7 @@ import struct
 import unittest
 from time import sleep
 
-from pikapi.database import create_connection, ProxyIP
+from pikapi.store import ProxyIP
 
 # logger = logging.getLogger('pikapi.test')
 logger = logging.getLogger('peewee')
@@ -19,7 +19,7 @@ def gen_random_ip() -> str:
 
 class Test(unittest.TestCase):
     def test(self):
-        db = create_connection()
+        pass
 
     @staticmethod
     def delete_ip(ip: str):

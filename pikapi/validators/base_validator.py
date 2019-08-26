@@ -4,7 +4,7 @@ import math
 
 import requests
 
-from pikapi.database import ProxyIP
+from pikapi.store import ProxyIP
 from .tcpping import ping
 
 IP_CHECKER_API = 'http://api.ipify.org/?format=json'

@@ -7,7 +7,7 @@
 """
 from unittest import TestCase
 
-from pikapi.database import ProxyIP
+from pikapi.store import ProxyIP
 from pikapi.validators.validate_manager import ValidateManager
 
 
@@ -24,6 +24,6 @@ class TestValidateManager(TestCase):
             s = '\n'.join(['%s:%s' % item for item in p.__data__.items()])
             print("\n")
             print("\033[;35m\t{}\033[0m".format(s))
-            p.merge()
+            p.save()
 
 

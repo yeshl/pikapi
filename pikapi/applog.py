@@ -7,7 +7,7 @@ import sys
 
 _formatter = logging.Formatter(
    # fmt='[%(asctime)s] %(name)s <%(processName)s>%(threadName)s - [%(filename)s:%(lineno)s]%(levelname)5s : %(message)s',
-   fmt='[%(asctime)s] <%(processName)s>%(threadName)s - [%(filename)s:%(lineno)s]%(levelname)5s : %(message)s',
+   fmt='[%(asctime)s] <%(processName)s>%(thread)d - [%(filename)s:%(lineno)s]%(levelname)5s : %(message)s',
    # datefmt="%Y-%m-%d %H:%M:%S"
 )
 _ch = logging.StreamHandler(sys.stdout)
