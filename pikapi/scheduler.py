@@ -1,4 +1,3 @@
-import multiprocessing
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -52,108 +51,77 @@ class TimerJob:
         self._lock.release()
 
 
-# 跨进程全局变量
-RUNNING_SPIDERS = None
-VALIDATOR_QUEUE = None
-
-
-def crawl_callback(future):
+def callback(future):
     try:
-        provider, exc = future.result()
-        proxies = list(set(provider.proxies))
-        pw = ProxyWebSite(site_name=provider.name)
-        if exc is None:
-            pw.stats = 'OK'
-        else:
-            pw.stats = exc.__class__.__name__
-            logger.debug("{} crawl error:{}".format(provider.name, exc))
-
-        pw.proxy_count = len(proxies)
-        logger.info("{} crawl proxies:{}".format(provider.name, pw.proxy_count))
-        global VALIDATOR_QUEUE
-        for p in proxies:
-            VALIDATOR_QUEUE.put(ProxyIP(ip=p[0], port=p[1]))
-        logger.info("{} proxies enqueue:{}".format(provider.name, pw.proxy_count))
+        rst = future.result()
     except Exception as e:
-        pw.stats = e.__class__.__name__
-        logger.debug("{} crawl callback error:{}".format(provider.name, exc))
-    logger.info("{} proxies save to db:{}".format(provider.name, pw.proxy_count))
-    pw.merge()
-    logger.info("{} crawl END".format(provider.name, pw.proxy_count))
-    global RUNNING_SPIDERS
-    RUNNING_SPIDERS.value -= 1
-
-
-def crawl_ips(running_spiders, spider_queue, validator_queue):
-    global RUNNING_SPIDERS
-    RUNNING_SPIDERS = running_spiders
-    global VALIDATOR_QUEUE
-    VALIDATOR_QUEUE = validator_queue
-    # if sys.platform.startswith('linux'):
-    pn = multiprocessing.current_process().name
-    if 'MainProcess' != pn and len(pn.split('-')) > 1:
-        for h in logger.parent.handlers:
-            if type(h) == RotatingFileHandler:
-                logfile = '{}_{}.log'.format(h.baseFilename.rstrip('.log'), pn.split('-')[1])
-                _fh = RotatingFileHandler(logfile, "a", maxBytes=h.maxBytes,
-                                          backupCount=h.backupCount, encoding=h.encoding)
-                _fh.setLevel(h.level)
-                _fh.setFormatter(h.formatter)
-                logger.parent.removeHandler(h)
-                logger.parent.addHandler(_fh)
-                logger.info("change new logfile %s" % logfile)
-
-    executor = BoundedThreadPoolExecutor(max_workers=32)
-    while True:
-        sp = spider_queue.get()
-        future = executor.submit(sp.crawl)
-        RUNNING_SPIDERS.value += 1
-        future.add_done_callback(crawl_callback)
+        logger.info("callback error %s", e, exc_info=True)
 
 
 class Scheduler(object):
-    # 跨进程访问，在此创建然后传递给新进程
-    spider_queue = multiprocessing.Queue(32)
-    validator_queue = multiprocessing.Queue(12800)
-    running_spiders = multiprocessing.Value("i", 0)
+    # spider_queue = queue.Queue(32)
+    validator_queue = queue.Queue(2048)
+    thread_pool = BoundedThreadPoolExecutor(max_workers=256)
 
     def __init__(self):
+        self.last_crawl_time = None
         self._stop = False
-        self.crawl_process = None
-        self.validator_thread = None
-        self.cron_thread = None
-        self.validator_pool = BoundedThreadPoolExecutor(max_workers=256)
 
-    def feed(self):
-        last_crawl_time = datetime.now() - timedelta(minutes=50)
+    def sche_validate_from_db(self):
+        try:
+            i = 0
+            with _db.connection_context():
+                proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+                                                 & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
+                for p in proxies.iterator():
+                    Scheduler.validator_queue.put(p)
+                    i += 1
+            logger.info('proxy from db :{}'.format(i))
+        except Exception as e:
+            logger.error("error:%s", str(e), exc_info=True)
+
+    def crawl_callback(self, future):
+        try:
+            provider, exc = future.result()
+            proxies = list(set(provider.proxies))
+            pw = ProxyWebSite(site_name=provider.name)
+            if exc is None:
+                pw.stats = 'OK'
+            else:
+                pw.stats = exc.__class__.__name__
+                logger.debug("{} crawl error:{}".format(provider.name, exc))
+
+            pw.proxy_count = len(proxies)
+            logger.info("{} crawl proxies:{}".format(provider.name, pw.proxy_count))
+            for p in proxies:
+                self.validator_queue.put(ProxyIP(ip=p[0], port=p[1]))
+            logger.info("{} proxies enqueue:{}".format(provider.name, pw.proxy_count))
+            logger.info("{} proxies save to db:{}".format(provider.name, pw.proxy_count))
+            pw.merge()
+            logger.info("{} crawl END".format(provider.name, pw.proxy_count))
+        except Exception as e:
+            pw.stats = e.__class__.__name__
+            logger.debug("{} crawl callback error:{}".format(provider.name, exc))
+
+    def crawls(self):
         while not self._stop:
-            logger.info('feed loop ...')
-            if self.validator_queue.qsize() < 100:
-                i = 0
-                logger.info('query proxies from db ...')
-                with _db.connection_context():
-                    proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
-                                                     & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
-                    for p in proxies.iterator():
-                        Scheduler.validator_queue.put(p)
-                        i += 1
+            try:
+                self.last_crawl_time = datetime.now()
+                for p in all_providers:
+                    future = self.thread_pool.submit(p().crawl)
+                    future.add_done_callback(self.crawl_callback)
+                time.sleep(60*10)
+            except (KeyboardInterrupt, SystemExit):
+                logger.info('KeyboardInterrupt terminates crawls()')
+                break;
 
-                logger.info('proxy from db :{}'.format(i))
-                if i < 500 and Scheduler.running_spiders.value == 0 \
-                        and last_crawl_time < datetime.now() - timedelta(minutes=15):
-                    for provider in all_providers:
-                        Scheduler.spider_queue.put(provider())
-                    last_crawl_time = datetime.now()
-                    logger.info('spiders :{} in queue'.format(len(all_providers)))
-                    time.sleep(120)
-            time.sleep(10)
-
-    def schedule_thread(self):
+    def sche(self):
+        logger.info('schedule validate_from_db ')
+        TimerJob(60, self.sche_validate_from_db)
         if get_config('squid'):
-            logger.info('schedule squid enabled')
+            logger.info('schedule squid ')
             sq = Squid()
-            TimerJob(60 * 5, sq.reconfigure)
-        self.feed()
+            TimerJob(60 * 3, sq.reconfigure)
 
     @staticmethod
     def validate_proxy_ip(p):
@@ -164,65 +132,35 @@ class Scheduler(object):
             except (KeyboardInterrupt, SystemExit):
                 logger.info('KeyboardInterrupt terminates validate_proxy_ip()')
         else:
-            logger.debug('skip validate {}  '.format(p))
+            logger.debug('skip validate {} '.format(p))
+        return 0
 
-    def validate_ips(self):
-        while True:
+    def validate(self):
+        while not self._stop:
             try:
                 proxy: ProxyIP = self.validator_queue.get()
                 if not get_config('no_validate'):
                     # logger.debug("submit validate :%s" % proxy.ip)
-                    self.validator_pool.submit(self.validate_proxy_ip, p=proxy)
+                    task = self.thread_pool.submit(self.validate_proxy_ip, p=proxy)
                 else:
                     logger.debug("no_validate :%s" % proxy.ip)
             except (KeyboardInterrupt, SystemExit):
                 break
+            except Exception as ex:
+                logger.error("error:%s", str(ex), exc_info=True)
 
     def start(self):
-        """
-        Start the scheduler with processes for worker (fetching candidate proxies from different spiders),
-        and validator threads for checking whether the fetched proxies are able to use.
-        """
-        logger.info('Scheduler starts...')
-        #这里使用独立进程采集，在linux上导致sqlite更新数据在此进程堵塞，不明原因
-        # self.crawl_process = multiprocessing.Process(target=crawl_ips,
-        #                                              args=(Scheduler.running_spiders,
-        #                                                    Scheduler.spider_queue,
-        #                                                    Scheduler.validator_queue))
-        self.crawl_process = Thread(target=crawl_ips,
-                                    args=(Scheduler.running_spiders,
-                                          Scheduler.spider_queue,
-                                          Scheduler.validator_queue))
-        self.validator_thread = Thread(target=self.validate_ips)
-        self.cron_thread = Thread(target=self.schedule_thread)
-
-        self.crawl_process.daemon = True
-        self.validator_thread.daemon = True
-        self.cron_thread.daemon = True
-
-        self.cron_thread.start()
-        self.crawl_process.start()
-        logger.info('crawl_process started')
-
-        self.validator_thread.start()
-        logger.info('validator_thread started')
+        future = self.thread_pool.submit(self.crawls)
+        future = self.thread_pool.submit(self.validate)
+        self.sche()
 
     def join(self):
-        # while (self.crawl_process and self.crawl_process.is_alive()) or (
-        #         self.validator_thread and self.validator_thread.is_alive()):
-        #     try:
-        #         self.crawl_process.join()
-        #         self.validator_thread.join()
-        #     except (KeyboardInterrupt, SystemExit):
-        #         break
         while True:
-            logger.info('<<< spider_queue:{}, validator_queue:{}, running_spider:{} >>>'
-                        .format(self.spider_queue.qsize(), self.validator_queue.qsize(),
-                                Scheduler.running_spiders.value))
+            logger.info('<<<last_crawl_time:{} validator_queue:{}>>>'
+                        .format(self.last_crawl_time, self.validator_queue.qsize()))
             time.sleep(4)
 
     def stop(self):
-        self.crawl_process.terminate()
         self._stop = True
-        self.spider_queue.close()
-        self.validator_pool.shutdown(wait=False)
+        self.validator_queue.close()
+        self.thread_pool.shutdown(wait=False)

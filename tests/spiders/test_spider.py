@@ -19,7 +19,7 @@ class TestProvider(unittest.TestCase):
         #     self.assert_provider(p())
 
     def assert_provider(self, p: Spider):
-        provider, obj, exc = p.crawl()
+        provider, exc = p.crawl()
         proxies = list(set(provider.proxies))
         self.assertTrue(exc is None, provider.name + " : " + exc.__class__.__name__)
         self.assertGreater(len(proxies), 0, provider.name)

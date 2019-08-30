@@ -5,6 +5,8 @@ import time
 import requests
 from datetime import datetime, timedelta
 
+from playhouse.shortcuts import model_to_dict
+
 from pikapi.applog import logger
 from pikapi.database import ProxyIP, _db
 from pikapi.validators import all_validators
@@ -54,7 +56,7 @@ class ValidateManager(object):
 
     def validate(self):
         c0 = time.perf_counter()
-        logger.debug("validate BEGIN {}".format(self._proxy))
+        # logger.debug("validate BEGIN {}".format(self._proxy))
         for vs in all_validators:
             validator = vs(self._proxy, get_current_ip())
             validator.validate(1)
@@ -63,13 +65,19 @@ class ValidateManager(object):
         self._proxy.latency = round(time.perf_counter() - c0, 2)
         if self._proxy.https_weight > 0:
             self.validate_google()
-        logger.debug("validate END {} weight:{} elapsed:{}s".format(self._proxy,
+        logger.info("validate END {} weight:{} elapsed:{}s".format(self._proxy,
                                              self._proxy.http_weight + self._proxy.https_weight,
                                              self._proxy.latency))
         self.save()
 
     def save(self):
-        self._proxy.merge()
+        try:
+            self._proxy.merge()
+        except Exception as e:
+            d = model_to_dict(self._proxy)
+            logger.error("error model:{}".format(d))
+            logger.error("error:%s", str(e), exc_info=True)
+
 
     @classmethod
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:

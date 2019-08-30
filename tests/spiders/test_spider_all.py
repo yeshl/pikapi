@@ -10,7 +10,7 @@ def add_test(provider):
 
     def test_method(p):
         def fn(self):
-            sp, obj, exc = p.crawl()
+            sp, exc = p.crawl()
             proxies = list(set(p.proxies))
             self.assertTrue(exc is None, p.name + " : " + exc.__class__.__name__)
             self.assertGreater(len(proxies), 0, p.name)
