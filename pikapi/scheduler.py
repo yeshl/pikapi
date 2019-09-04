@@ -2,11 +2,9 @@ import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from logging.handlers import RotatingFileHandler
-from threading import Thread
 
 from pikapi.config import get_config
-from pikapi.database import ProxyIP, ProxyWebSite, _db
+from pikapi.database import ProxyIP, ProxyWebSite
 from pikapi.spiders import *
 from pikapi.squid import Squid
 from pikapi.validators.validate_manager import ValidateManager
@@ -67,20 +65,22 @@ class Scheduler(object):
         self.last_crawl_time = None
         self._stop = False
 
-    def sche_validate_from_db(self):
+    @staticmethod
+    def sche_validate_from_db():
         try:
             i = 0
-            with _db.connection_context():
-                proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
-                                                 & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
-                for p in proxies.iterator():
-                    Scheduler.validator_queue.put(p)
-                    i += 1
+            # with _db.connection_context():
+            proxies = ProxyIP.select().where((ProxyIP.updated_at < datetime.now() - timedelta(minutes=5))
+                                             & (ProxyIP.https_weight + ProxyIP.http_weight > 0))
+            for p in proxies.iterator():
+                Scheduler.validator_queue.put(p)
+                i += 1
             logger.info('proxy from db :{}'.format(i))
         except Exception as e:
             logger.error("error:%s", str(e), exc_info=True)
 
     def crawl_callback(self, future):
+        pw = provider = exc = None
         try:
             provider, exc = future.result()
             proxies = list(set(provider.proxies))
@@ -107,13 +107,16 @@ class Scheduler(object):
         while not self._stop:
             try:
                 self.last_crawl_time = datetime.now()
-                for p in all_providers:
-                    future = self.thread_pool.submit(p().crawl)
-                    future.add_done_callback(self.crawl_callback)
-                time.sleep(60*10)
+                if self.validator_queue.qsize() < 100:
+                    for p in all_providers:
+                        future = self.thread_pool.submit(p().crawl)
+                        future.add_done_callback(self.crawl_callback)
+                    time.sleep(60*12)
+                else:
+                    time.sleep(30)
             except (KeyboardInterrupt, SystemExit):
                 logger.info('KeyboardInterrupt terminates crawls()')
-                break;
+                break
 
     def sche(self):
         logger.info('schedule validate_from_db ')
@@ -156,11 +159,10 @@ class Scheduler(object):
 
     def join(self):
         while True:
-            logger.info('<<<last_crawl_time:{} validator_queue:{}>>>'
+            logger.info('\033[;36m last_crawl_time:{} validator_queue:{}\033[0m'
                         .format(self.last_crawl_time, self.validator_queue.qsize()))
             time.sleep(4)
 
     def stop(self):
         self._stop = True
-        self.validator_queue.close()
         self.thread_pool.shutdown(wait=False)

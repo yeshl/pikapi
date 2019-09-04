@@ -80,8 +80,8 @@ def newdb():
     u.age = 6
     u.save()  # 执行update
     kitty = Pet.create(owner=u, name='Kitty', animal_type='cat')
-    with db.connection_context():
-        ps = Person.select().where(Person.user_name == 'tom').execute()
+    # with db.connection_context():
+    ps = Person.select().where(Person.user_name == 'tom').execute()
     for i, p in enumerate(ps):
         print(p.user_name)
 
@@ -99,17 +99,17 @@ def test_in_threads(fun, num):
 
 def test_update(n):
     while True:
-        with db.connection_context():
-            s = Pet.update(update_at=datetime.datetime.now()).where(Pet.name == 'Peppa')
-            r = s.execute()
+        # with db.connection_context():
+        s = Pet.update(update_at=datetime.datetime.now()).where(Pet.name == 'Peppa')
+        r = s.execute()
         logger.info('update :%s' % r)
         sleep(1)
 
 
 def test_query(n):
     while True:
-        with db.connection_context():
-            s = Person.select().count()
+        # with db.connection_context():
+        s = Person.select().count()
         logger.info('select :%s' % str(s))
         # p= Person.select()
         # for x in p.iterator():

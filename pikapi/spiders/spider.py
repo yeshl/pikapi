@@ -60,7 +60,7 @@ class Spider(object):
     def __init__(self):
         # self._ua = UserAgent().random
         self._ua = random.choice(USER_AGENT)
-        self._headers = {'User-Agent': self._ua}
+        self._headers = {'Connection': 'close', 'User-Agent': self._ua}
         self._encoding = 'utf-8'
         # self._site_name = self.__class__.__name__
         self._req_timeout = 30
@@ -187,9 +187,9 @@ class CookieSpider(Spider):
         # except Exception as e:
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         finally:
-            logger.info('req close chromium')
+            logger.info('closing chromium')
             loop.run_until_complete(self._browser.close())
-            logger.info('req close chromium complete')
+            logger.info('chromium closed')
 
 
 class BrowserSpider(Spider):
@@ -234,9 +234,9 @@ class BrowserSpider(Spider):
         #     logger.error("asyncio error:%s", str(e), exc_info=True)
         #     raise e
         finally:
-            logger.info('close chromium')
+            logger.info('chromium closing')
             loop.run_until_complete(self._browser.close())
-            logger.info('close chromium complete')
+            logger.info('chromium closed')
 
     def crawl(self):
         self.setUp()

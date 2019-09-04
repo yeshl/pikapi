@@ -31,17 +31,18 @@ class BaseValidator(object):
             'Connection': 'keep-alive'}
 
     def ip_info(self):
+        resp = None
         try:
             # logger.debug("query ip info: {0} ".format(IP_INFO_AIP.format(self._proxy_ip.ip)))
-            r = requests.get(IP_INFO_AIP.format(self._proxy_ip.ip), proxies=self._proxy,
+            resp = requests.get(IP_INFO_AIP.format(self._proxy_ip.ip), proxies=self._proxy,
                              headers=self._header, verify=False, timeout=(5,7))
             '''
             {"as":"AS14061 DigitalOcean, LLC","city":"North Bergen","country":"美国","countryCode":"US",
             "isp":"DigitalOcean, LLC","lat":40.8054,"lon":-74.0241,"org":"Digital Ocean","query":"159.203.186.40",
             "region":"NJ","regionName":"新泽西州","status":"success","timezone":"America/New_York","zip":"07047"}
             '''
-            if r.ok:
-                jtxt = json.loads(r.text)
+            if resp.ok:
+                jtxt = json.loads(resp.text)
                 if jtxt:
                     self._proxy_ip.country = jtxt['country']
                     self._proxy_ip.country_code = jtxt['countryCode']
@@ -52,19 +53,22 @@ class BaseValidator(object):
         except Exception as e:
             # logger.debug("query ip info {0} Exception:{1}".format(self._proxy_ip.ip, e.__str__()))
             self.ip_info2()
+        finally:
+            resp.close()
 
     def ip_info2(self):
+        resp = None
         try:
             # logger.debug("query ip info: {0} ".format(IP_INFO_AIP2.format(self._proxy_ip.ip).format(self._proxy_ip.ip)))
-            r = requests.get(IP_INFO_AIP2.format(self._proxy_ip.ip), proxies=self._proxy,
+            resp = requests.get(IP_INFO_AIP2.format(self._proxy_ip.ip), proxies=self._proxy,
                              headers=self._header, verify=False, timeout=(5,7))
             '''
             {"code":0,"data":{"ip":"103.70.205.24","country":"印度","area":"","region":"西孟加拉","city":"XX",
             "county":"XX","isp":"XX","country_id":"IN","area_id":"","region_id":"IN_136","city_id":"xx",
             "county_id":"xx","isp_id":"xx"}}
             '''
-            if r.ok:
-                jtxt = json.loads(r.text)
+            if resp.ok:
+                jtxt = json.loads(resp.text)
                 jtxt = jtxt['data']
                 if jtxt:
                     self._proxy_ip.country = jtxt['country']
@@ -76,6 +80,9 @@ class BaseValidator(object):
         except Exception as e:
             pass
             # logger.debug("query ip info {0} Exception:{1}".format(self._proxy_ip.ip, e.__str__()))
+        finally:
+            resp.close()
+
 
     def validate_latency(self):
         try:
@@ -84,11 +91,12 @@ class BaseValidator(object):
             self._latency, self._success_rate = math.inf, 0.0
 
     def validate_http(self):
+        resp = None
         try:
             # logger.debug("{0} -x {1}".format(self._http_check_url, self._proxy['http']))
-            r = requests.get(self._http_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
-            if r.ok:
-                ip = self.parse_ip(r.text)
+            resp = requests.get(self._http_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
+            if resp.ok:
+                ip = self.parse_ip(resp.text)
                 if ip is not None and len(ip) > 0:
                     self._proxy_ip.http_pass_proxy_ip = ip
                     if ip != self._external_ip:
@@ -97,13 +105,16 @@ class BaseValidator(object):
         # except requests.RequestException as e:
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._http_check_url, self._proxy['http'], e.__str__()))
+        finally:
+            resp.close()
 
     def validate_https(self):
+        resp = None
         try:
             # logger.debug("{0} -x {1}".format(self._https_check_url, self._proxy['https']))
-            r = requests.get(self._https_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
-            if r.ok:
-                ip = self.parse_ip(r.text)
+            resp = requests.get(self._https_check_url, proxies=self._proxy, headers=self._header, verify=False, timeout=(5,10))
+            if resp.ok:
+                ip = self.parse_ip(resp.text)
                 if ip is not None and len(ip) > 0:
                     self._proxy_ip.https_pass_proxy_ip = ip
                     if ip != self._external_ip:
@@ -112,6 +123,8 @@ class BaseValidator(object):
         # except requests.RequestException as e:
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._https_check_url, self._proxy['https'], e.__str__()))
+        finally:
+            resp.close()
 
     def parse_ip(self, txt: str):
         return txt

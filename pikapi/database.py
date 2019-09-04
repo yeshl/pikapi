@@ -1,8 +1,7 @@
 import datetime
 import logging
 
-from peewee import CharField, DateTimeField, FloatField, IntegerField, SqliteDatabase, MySQLDatabase
-from playhouse.db_url import connect
+from peewee import CharField, DateTimeField, FloatField, IntegerField
 from playhouse.signals import Model
 from playhouse.sqliteq import SqliteQueueDatabase
 
@@ -16,18 +15,16 @@ logger = logging.getLogger(__name__)
 
 db_path = get_config('db_path', './pikapi.db')
 logger.info('create new db1 connection %s', db_path)
-# _db = SqliteQueueDatabase(
-#     db_path,
-#     use_gevent=False,
-#     autostart=True,
-#     queue_max_size=256,  # Max. # of pending writes that can accumulate.
-#     results_timeout=10.0)  # Max. time to wait for query to be executed.
+_db = SqliteQueueDatabase(
+    db_path,
+    use_gevent=False,
+    autostart=True,
+    queue_max_size=128,  # Max. # of pending writes that can accumulate.
+    results_timeout=10.0)  # Max. time to wait for query to be executed.
 
 # _db = connect('mysql+pool://admin:123456@localhost:3306/db1?max_connections=50&stale_timeout=300&timeout=0')
-
-_db = connect('sqlite+pool:///'+db_path+'?max_connections=50&stale_timeout=300&timeout=0&check_same_thread=False')
-_db.journal_mode = 'wal'
-
+# _db = connect('sqlite+pool:///'+db_path+'?max_connections=50&stale_timeout=300&timeout=0&check_same_thread=False')
+# _db.journal_mode = 'wal'
 
 for k in dir(_db):
     if not k.startswith('_'):
@@ -53,16 +50,16 @@ class ProxyWebSite(BaseModel):
 
     def merge(self):
         logger.info('update crawl BEGIN %s' % str((self.site_name, self.proxy_count, self.stats)))
-        with _db.connection_context():
-            cnt = ProxyWebSite.update(proxy_count=self.proxy_count,
-                                  last_fetch=ProxyWebSite.this_fetch,
-                                  this_fetch=datetime.datetime.now(),
-                                  stats=self.stats) \
-             .where(ProxyWebSite.site_name == self.site_name).execute()
-            # cnt=0
-            logger.info('update crawl END %s' % str((self.site_name, self.proxy_count, self.stats)))
-            if 0 == cnt:
-                cnt = self.save()
+        # with _db.connection_context():
+        cnt = ProxyWebSite.update(proxy_count=self.proxy_count,
+                              last_fetch=ProxyWebSite.this_fetch,
+                              this_fetch=datetime.datetime.now(),
+                              stats=self.stats) \
+         .where(ProxyWebSite.site_name == self.site_name).execute()
+        # cnt=0
+        logger.info('update crawl END %s' % str((self.site_name, self.proxy_count, self.stats)))
+        if 0 == cnt:
+            cnt = self.save()
         return cnt
 
     def __str__(self):
@@ -106,15 +103,15 @@ class ProxyIP(BaseModel):
     def merge(self):
         if self.http_weight + self.https_weight <= 0:
             self.failed_validate = self.failed_validate + 1
-        with _db.connection_context():
-            cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
-                                 http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
-                                 http_weight=self.http_weight, https_weight=self.https_weight,
-                                 latency=self.latency, failed_validate=self.failed_validate,
-                                 updated_at=datetime.datetime.now()) \
-                .where(ProxyIP.ip == self.ip).execute()
-            if 0 == cnt:
-                cnt = self.save()
+        # with _db.connection_context():
+        cnt = ProxyIP.update(http_pass_proxy_ip=self.http_pass_proxy_ip, https_pass_proxy_ip=self.https_pass_proxy_ip,
+                             http_anonymous=self.http_anonymous, https_anonymous=self.https_anonymous,
+                             http_weight=self.http_weight, https_weight=self.https_weight,
+                             latency=self.latency, failed_validate=self.failed_validate,
+                             updated_at=datetime.datetime.now()) \
+            .where(ProxyIP.ip == self.ip).execute()
+        if 0 == cnt:
+            cnt = self.save()
         return cnt
 
 

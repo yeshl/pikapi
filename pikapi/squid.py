@@ -2,7 +2,7 @@ import logging
 import subprocess
 from datetime import datetime, timedelta
 
-from pikapi.database import ProxyIP, _db
+from pikapi.database import ProxyIP
 
 logger = logging.getLogger(__name__)
 #logger = logging.getLogger('pikapi.Squid')
@@ -20,15 +20,15 @@ class Squid:
             'request_header_access From deny all']
 
     def reconfigure(self):
-        with _db.connection_context():
-            ps = ProxyIP.select() \
-                .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=60)) \
-                .where(ProxyIP.https_anonymous > 0).where(ProxyIP.http_anonymous > 0) \
-                .where(ProxyIP.https_weight > 0) \
-                .where(ProxyIP.latency < 25) \
-                .order_by(ProxyIP.https_weight.desc(), ProxyIP.https_anonymous.desc(),
-                          ProxyIP.http_weight.desc(), ProxyIP.http_anonymous.desc(), ProxyIP.latency) \
-                .limit(300).execute()
+        # with _db.connection_context():
+        ps = ProxyIP.select() \
+            .where(ProxyIP.updated_at > datetime.now() - timedelta(minutes=60)) \
+            .where(ProxyIP.https_anonymous > 0).where(ProxyIP.http_anonymous > 0) \
+            .where(ProxyIP.https_weight > 0) \
+            .where(ProxyIP.latency < 25) \
+            .order_by(ProxyIP.https_weight.desc(), ProxyIP.https_anonymous.desc(),
+                      ProxyIP.http_weight.desc(), ProxyIP.http_anonymous.desc(), ProxyIP.latency) \
+            .limit(300).execute()
         logger.info('squid reconfigure...')
         with open(self.SQUID_CONF_TPL, "r") as f:
             squid_conf = f.readlines()

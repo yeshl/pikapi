@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from playhouse.shortcuts import model_to_dict
 
 from pikapi.applog import logger
-from pikapi.database import ProxyIP, _db
+from pikapi.database import ProxyIP
 from pikapi.validators import all_validators
 
 __EXTERNAL_IP__ = None
@@ -82,8 +82,8 @@ class ValidateManager(object):
     @classmethod
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:
         if proxy_ip.id is None:
-            with _db.connection_context():
-                p = ProxyIP.get_or_none(ProxyIP.ip == proxy_ip.ip)
+            # with _db.connection_context():
+            p = ProxyIP.get_or_none(ProxyIP.ip == proxy_ip.ip)
             if p is not None:
                 if p.updated_at > datetime.now() - timedelta(minutes=20):
                     return False
