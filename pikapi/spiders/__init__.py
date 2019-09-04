@@ -26,10 +26,10 @@ all_providers = [
     SpiderKuaidaili,
     SpiderIpaddress,
     SpiderXici,
-    # Spider66ipcn,
-    # Spider66ip,
-    # SpiderGoubanjia,
-    # SpiderCoolProxy,
+    Spider66ipcn,
+    Spider66ip,
+    SpiderGoubanjia,
+    SpiderCoolProxy,
 ]
 
 

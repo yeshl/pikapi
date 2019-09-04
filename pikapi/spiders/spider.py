@@ -189,10 +189,14 @@ class CookieSpider(Spider):
             logger.error("asyncio error:%s", str(e), exc_info=True)
             raise e
         finally:
-            logger.info('closing chromium')
-            loop.run_until_complete(self._browser.close())
-            loop.close()
-            logger.info('chromium closed')
+            try:
+                logger.info('chromium closing')
+                loop.run_until_complete(self._browser.close())
+                self._browser.process.communicate()#close FIFO pipe
+                logger.info('chromium closed')
+            finally:
+                loop.close()#close socket
+                logger.info('loop closed ')
 
 
 class BrowserSpider(Spider):
@@ -245,11 +249,10 @@ class BrowserSpider(Spider):
             try:
                 logger.info('chromium closing')
                 loop.run_until_complete(self._browser.close())
+                self._browser.process.communicate()#close FIFO pipe
                 logger.info('chromium closed')
             finally:
-                loop.stop()
-                loop.close()
-                asyncio.set_event_loop(None)
+                loop.close()#close socket
                 logger.info('loop closed ')
 
     def crawl(self):

@@ -46,9 +46,10 @@ class ResquestHandler(BaseHTTPRequestHandler):
             # with _db.connection_context():
             total_count = ProxyIP.select().count()
             valid_count = _valid_proxies_query.count()
-            ul = '''<div style='margin-left:20px'><h3> hi:{0}</h3></div>
-                    <ul><li><b>{1}</b> proxy ips in total</li>
-                    <li><b>{2}</b> of them are valid</li></ul>'''.format(self.client_address, total_count, valid_count)
+            ul = '''<div style='margin-left:20px'><h3> {0}:{1}</h3></div>
+                    <ul><li><b>{2}</b> proxy ips in total</li>
+                    <li><b>{3}</b> of them are valid</li></ul>'''.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                                                         self.client_address, total_count, valid_count)
 
             arr = []
             # with _db.connection_context():
