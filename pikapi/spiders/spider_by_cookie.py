@@ -1,6 +1,5 @@
 import logging
 import re
-import asyncio
 
 from lxml import etree
 from pikapi.spiders.spider import CookieSpider

@@ -54,7 +54,8 @@ class BaseValidator(object):
             # logger.debug("query ip info {0} Exception:{1}".format(self._proxy_ip.ip, e.__str__()))
             self.ip_info2()
         finally:
-            resp.close()
+            if resp is not None:
+                resp.close()
 
     def ip_info2(self):
         resp = None
@@ -81,8 +82,8 @@ class BaseValidator(object):
             pass
             # logger.debug("query ip info {0} Exception:{1}".format(self._proxy_ip.ip, e.__str__()))
         finally:
-            resp.close()
-
+            if resp is not None:
+                resp.close()
 
     def validate_latency(self):
         try:
@@ -106,7 +107,8 @@ class BaseValidator(object):
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._http_check_url, self._proxy['http'], e.__str__()))
         finally:
-            resp.close()
+            if resp is not None:
+                resp.close()
 
     def validate_https(self):
         resp = None
@@ -124,7 +126,8 @@ class BaseValidator(object):
         except Exception as e:
             logger.debug("{0} -x {1} Exception:{2}".format(self._https_check_url, self._proxy['https'], e.__str__()))
         finally:
-            resp.close()
+            if resp is not None:
+                resp.close()
 
     def parse_ip(self, txt: str):
         return txt

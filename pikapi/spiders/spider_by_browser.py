@@ -1,6 +1,4 @@
-import asyncio
 import logging
-import re
 
 from lxml import etree
 from pyquery import PyQuery
@@ -13,7 +11,7 @@ class SpiderCoolProxy(BrowserSpider):
     name = 'www.cool-proxy.net'
     start_urls = [
             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1',
-             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
+            'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:2',
             'https://www.cool-proxy.net/proxies/http_proxy_list/country_code:/port:/anonymous:1/page:3'
         ]
     parse_args = ('#main > table > tbody > tr', 'td', 0, 1)

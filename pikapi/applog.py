@@ -34,7 +34,7 @@ _fh.setFormatter(_formatter)
 
 logger = logging.getLogger(__package__)  # 设置顶级包的logger
 # logger = logging.getLogger() #无参数是设置root根logger
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(_ch)
 logger.addHandler(_fh)
 

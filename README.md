@@ -26,7 +26,7 @@ python3 setup.py sdist
 python3 -m venv venv1
 source venv1/bin/activate
 执行安装
-pip3 install pikapi-1.2.5.tar.gz
+pip install pikapi-1.3.0.tar.gz -i https://pypi.tuna.tsinghua.edu.cn/simple
 chrome依赖包
 yum install -y libXcomposite.x86_64 libXcursor.x86_64 libXdamage.x86_64 cups-libs.x86_64 libXScrnSaver.x86_64 pango.x86_64 atk.x86_64 gtk3.x86_64 psmisc
 

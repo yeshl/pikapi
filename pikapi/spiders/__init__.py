@@ -2,6 +2,7 @@ from pikapi.spiders.spider_by_browser import *
 from pikapi.spiders.spider_by_cookie import *
 from pikapi.spiders.spider_by_req import *
 
+
 all_providers = [
     SpiderXiladaili,
     SpiderYqie,
@@ -12,7 +13,6 @@ all_providers = [
     SpiderTxt,
     SpiderKxdaili,
     SpiderJiangxianli,
-    Spider66ipcn,
     SpiderProxylistplus,
     SpiderProxyListen,
     SpiderIp3366,
@@ -21,15 +21,15 @@ all_providers = [
     SpiderIphai,
     Spider89ip,
     SpiderCnProxy,
-    Spider66ip,
     SpiderData5u,
     SpiderMrhinkydink,
     SpiderKuaidaili,
     SpiderIpaddress,
-    SpiderGoubanjia,
-    SpiderCoolProxy,
     SpiderXici,
+    # Spider66ipcn,
+    # Spider66ip,
+    # SpiderGoubanjia,
+    # SpiderCoolProxy,
 ]
-
 
 

@@ -56,7 +56,7 @@ class ValidateManager(object):
 
     def validate(self):
         c0 = time.perf_counter()
-        # logger.debug("validate BEGIN {}".format(self._proxy))
+        logger.debug("validate BEGIN {}".format(self._proxy))
         for vs in all_validators:
             validator = vs(self._proxy, get_current_ip())
             validator.validate(1)
@@ -77,7 +77,6 @@ class ValidateManager(object):
             d = model_to_dict(self._proxy)
             logger.error("error model:{}".format(d))
             logger.error("error:%s", str(e), exc_info=True)
-
 
     @classmethod
     def should_validate(cls, proxy_ip: ProxyIP) -> bool:
